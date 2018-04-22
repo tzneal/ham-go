@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tzneal/adif"
+	"github.com/tzneal/ham-go/adif"
 )
 
 func TestSimple(t *testing.T) {

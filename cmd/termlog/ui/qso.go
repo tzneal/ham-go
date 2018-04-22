@@ -3,6 +3,8 @@ package ui
 import (
 	"strconv"
 
+	"github.com/tzneal/ham-go/rigcontrol"
+
 	"github.com/tzneal/ham-go/dxcc"
 
 	maidenhead "github.com/pd0mz/go-maidenhead"
@@ -19,22 +21,26 @@ type QSO struct {
 	focused    bool
 	lookup     callsigns.Lookup
 
-	call *TextEdit
-	freq *TextEdit
-	band *ComboBox
-	mode *ComboBox
-	srst *TextEdit
-	rrst *TextEdit
-	srx  *TextEdit
-	stx  *TextEdit
+	call      *TextEdit
+	freq      *TextEdit
+	freqLabel *Label // used under rig-control
+	band      *ComboBox
+	bandLabel *Label // used under rig-control
+	mode      *ComboBox
+	srst      *TextEdit
+	rrst      *TextEdit
+	srx       *TextEdit
+	stx       *TextEdit
 
 	name             *TextEdit
 	grid             *TextEdit
 	entity           *ComboBox
 	operatorLocation *maidenhead.Point
+
+	rig rigcontrol.Rig
 }
 
-func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup) *QSO {
+func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig rigcontrol.Rig) *QSO {
 	// call sign
 	pc := NewPanelController(theme)
 	pc.AddWidget(NewLabel(0, yPos, "Call"))
@@ -45,16 +51,32 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup) *QSO {
 	pc.AddWidget(call)
 
 	pc.AddWidget(NewLabel(12, yPos, "Frequency"))
-	freq := NewTextEdit(12, yPos+1)
-	freq.SetAllowedCharacterSet("[0-9.]")
-	pc.AddWidget(freq)
-
 	pc.AddWidget(NewLabel(23, yPos, "Band"))
-	band := NewComboBox(23, yPos+1)
-	for _, b := range adif.Bands {
-		band.AddItem(b.Name)
+
+	var freq *TextEdit
+	var freqLabel *Label
+	var band *ComboBox
+	var bandLabel *Label
+	if rig == nil {
+		// frequency edit
+		freq = NewTextEdit(12, yPos+1)
+		freq.SetAllowedCharacterSet("[0-9.]")
+		pc.AddWidget(freq)
+
+		// band edit
+		band = NewComboBox(23, yPos+1)
+		for _, b := range adif.Bands {
+			band.AddItem(b.Name)
+		}
+		pc.AddWidget(band)
+
+	} else {
+		freqLabel = NewLabel(12, yPos+1, "rig-ctrl")
+		pc.AddWidget(freqLabel)
+
+		bandLabel = NewLabel(23, yPos+1, "rig-ctrl")
+		pc.AddWidget(bandLabel)
 	}
-	pc.AddWidget(band)
 
 	pc.AddWidget(NewLabel(32, 1, "Mode"))
 	mode := NewComboBox(32, 2)
@@ -103,23 +125,28 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup) *QSO {
 	pc.AddWidget(entity)
 
 	qso := &QSO{
-		yPos:   yPos,
-		panel:  pc,
-		lookup: lookup,
-		call:   call,
-		freq:   freq,
-		band:   band,
-		mode:   mode,
-		srst:   srst,
-		rrst:   rrst,
-		name:   name,
-		grid:   grid,
-		entity: entity,
-		srx:    srx,
-		stx:    stx,
+		yPos:      yPos,
+		panel:     pc,
+		lookup:    lookup,
+		call:      call,
+		freq:      freq,
+		freqLabel: freqLabel,
+		band:      band,
+		bandLabel: bandLabel,
+		mode:      mode,
+		srst:      srst,
+		rrst:      rrst,
+		name:      name,
+		grid:      grid,
+		entity:    entity,
+		srx:       srx,
+		stx:       stx,
+		rig:       rig,
 	}
 
-	freq.OnChange(qso.syncBandWithFreq)
+	if freq != nil {
+		freq.OnChange(qso.syncBandWithFreqText)
+	}
 	call.OnLostFocus(qso.lookupCallsign)
 	qso.SetDefaults()
 	return qso
@@ -140,7 +167,7 @@ func (q *QSO) lookupCallsign() {
 	}
 }
 
-func (q *QSO) syncBandWithFreq(t string) {
+func (q *QSO) syncBandWithFreqText(t string) {
 	freq, err := strconv.ParseFloat(t, 64)
 	if err == nil {
 		for _, b := range adif.Bands {
@@ -152,12 +179,25 @@ func (q *QSO) syncBandWithFreq(t string) {
 }
 
 func (q *QSO) SetDefaults() {
-	q.freq.SetValue("")
+	if q.freq != nil {
+		q.freq.SetValue("")
+	}
 	q.call.SetValue("")
 	q.srst.SetValue("59")
 	q.rrst.SetValue("59")
 }
 func (q *QSO) Redraw() {
+	if q.rig != nil {
+		status, err := q.rig.ReadStatus()
+		if err == nil {
+			q.freqLabel.SetText(strconv.FormatFloat(status.Frequency, 'f', -1, 64))
+			for _, b := range adif.Bands {
+				if status.Frequency >= b.Min && status.Frequency <= b.Max {
+					q.bandLabel.SetText(b.Name)
+				}
+			}
+		}
+	}
 	q.panel.Redraw()
 }
 

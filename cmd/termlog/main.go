@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
+	termbox "github.com/nsf/termbox-go"
+	"github.com/tzneal/ham-go/rigcontrol"
+
 	"github.com/BurntSushi/toml"
-	"github.com/nsf/termbox-go"
 	"github.com/tzneal/ham-go/adif"
 	"github.com/tzneal/ham-go/callsigns"
 	_ "github.com/tzneal/ham-go/callsigns/providers" // to register providers
@@ -69,7 +71,7 @@ func main() {
 	alog.SetHeader(adif.MyCountry, cfg.Operator.Country)
 
 	c := ui.NewController(cfg.Theme)
-	c.RefreshEvery(1 * time.Second)
+	c.RefreshEvery(250 * time.Millisecond)
 
 	// status bar
 	sb := ui.NewStatusBar(0)
@@ -79,7 +81,17 @@ func main() {
 	sb.AddClock("UTC")
 	c.AddWidget(sb)
 
-	qso := ui.NewQSO(1, c.Theme(), lookup)
+	rig, err := rigcontrol.NewFT857D(rigcontrol.FT857DOptions{
+		Port:     "/dev/ttyUSB0",
+		BaudRate: 4800,
+		DataBits: 8,
+		StopBits: 2,
+	})
+	if err != nil {
+		log.Fatalf("error connecting to rig: %s", err)
+	}
+	defer rig.Close()
+	qso := ui.NewQSO(1, c.Theme(), lookup, rig)
 	c.AddWidget(qso)
 
 	qsoList := ui.NewQSOList(6, alog)
