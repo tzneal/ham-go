@@ -1,0 +1,18 @@
+[theme]
+    statusbg = 40
+        
+[operator]
+    name = "My Name"
+    call = "MYCALL"
+    grid = "MYGRID"
+    county = "MyCounty"
+    city = "MyCity"
+    state = "MyState"
+    country = "United States"
+    logdir = "~/ham-logs/"
+
+# use the free callook for US lookups, and do a lookup based on callsign prefix
+# if that fails
+[lookups]
+    [lookup.callook]
+    [lookup.dxcc]

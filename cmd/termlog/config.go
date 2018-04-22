@@ -1,0 +1,35 @@
+package main
+
+import (
+	"github.com/tzneal/ham-go/callsigns"
+	"github.com/tzneal/ham-go/cmd/termlog/ui"
+)
+
+type Operator struct {
+	Name    string
+	Call    string
+	Grid    string
+	City    string
+	County  string
+	State   string
+	Country string
+	Logdir  string
+}
+type Config struct {
+	Theme    ui.Theme
+	Operator Operator
+	Lookup   map[string]callsigns.LookupConfig
+}
+
+func NewConfig() *Config {
+	cfg := &Config{}
+	cfg.Theme.StatusBg = 40 // light blue
+	cfg.Theme.StatusFg = 16 // white
+
+	cfg.Theme.TextEditBg = 16
+	cfg.Theme.TextEditFg = 1 // black
+
+	cfg.Theme.ComboBoxBg = 16
+	cfg.Theme.ComboBoxFg = 1 // black
+	return cfg
+}
