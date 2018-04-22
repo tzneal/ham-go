@@ -1,6 +1,6 @@
 [theme]
     statusbg = 40
-        
+
 [operator]
     name = "My Name"
     call = "MYCALL"
@@ -10,6 +10,17 @@
     state = "MyState"
     country = "United States"
     logdir = "~/ham-logs/"
+
+ [rig]
+    type = "FT857D"
+    enabled = true
+    [rig.config]
+        port = "/dev/ttyUSB0"
+        baudrate = 4800
+        databits = 8
+        stopbits = 2
+
+
 
 # use the free callook for US lookups, and do a lookup based on callsign prefix
 # if that fails

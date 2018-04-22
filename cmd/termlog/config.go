@@ -15,9 +15,15 @@ type Operator struct {
 	Country string
 	Logdir  string
 }
+type Rig struct {
+	Type    string
+	Enabled bool
+	Config  map[string]interface{}
+}
 type Config struct {
 	Theme    ui.Theme
 	Operator Operator
+	Rig      Rig
 	Lookup   map[string]callsigns.LookupConfig
 }
 

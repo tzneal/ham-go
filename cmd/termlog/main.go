@@ -9,13 +9,13 @@ import (
 	"time"
 
 	termbox "github.com/nsf/termbox-go"
-	"github.com/tzneal/ham-go/rigcontrol"
 
 	"github.com/BurntSushi/toml"
 	"github.com/tzneal/ham-go/adif"
 	"github.com/tzneal/ham-go/callsigns"
 	_ "github.com/tzneal/ham-go/callsigns/providers" // to register providers
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
+	"github.com/tzneal/ham-go/rigcontrol"
 )
 
 func main() {
@@ -43,6 +43,17 @@ func main() {
 		log.Fatalf("unable to read %s: %s", *config, err)
 	}
 
+	// are we connected to a radio?
+	var rig rigcontrol.Rig
+	if cfg.Rig.Enabled {
+		rig, err = rigcontrol.NewRig(cfg.Rig.Type, cfg.Rig.Config)
+		if err != nil {
+			log.Fatalf("error connecting to rig: %s", err)
+		}
+		defer rig.Close()
+	}
+
+	// go open the log
 	lookup := callsigns.BuildLookup(cfg.Lookup)
 	var alog *adif.Log
 	if flag.NArg() > 0 {
@@ -81,16 +92,6 @@ func main() {
 	sb.AddClock("UTC")
 	c.AddWidget(sb)
 
-	rig, err := rigcontrol.NewFT857D(rigcontrol.FT857DOptions{
-		Port:     "/dev/ttyUSB0",
-		BaudRate: 4800,
-		DataBits: 8,
-		StopBits: 2,
-	})
-	if err != nil {
-		log.Fatalf("error connecting to rig: %s", err)
-	}
-	defer rig.Close()
 	qso := ui.NewQSO(1, c.Theme(), lookup, rig)
 	c.AddWidget(qso)
 
