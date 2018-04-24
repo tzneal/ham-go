@@ -21,6 +21,8 @@ func NewStatusBar(y int) *StatusBar {
 type sbitem struct {
 	clock *time.Location
 	text  string
+	fn    func() string
+	width int
 }
 
 func (s *StatusBar) SetController(c Controller) {
@@ -44,6 +46,10 @@ func (s *StatusBar) Redraw() {
 			DrawText(xPos, s.yPos, item.text, fg, bg)
 			termbox.SetCell(xPos+len(item.text), s.yPos, ' ', fg, bg)
 			xPos += len(item.text) + 1
+		case item.fn != nil:
+			Clear(xPos, s.yPos, xPos+item.width, s.yPos, fg, bg)
+			DrawText(xPos, s.yPos, item.fn(), fg, bg)
+			xPos += item.width + 1
 		}
 	}
 	w, _ := termbox.Size()
@@ -56,7 +62,9 @@ func (s *StatusBar) Redraw() {
 func (s *StatusBar) AddText(text string) {
 	s.items = append(s.items, sbitem{text: text})
 }
-
+func (s *StatusBar) AddFunction(fn func() string, width int) {
+	s.items = append(s.items, sbitem{fn: fn, width: width})
+}
 func (s *StatusBar) AddClock(name string) error {
 	loc, err := time.LoadLocation(name)
 	if err != nil {

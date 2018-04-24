@@ -3,15 +3,13 @@ package ui
 import (
 	"strconv"
 
-	"github.com/tzneal/ham-go/rigcontrol"
-
-	"github.com/tzneal/ham-go/dxcc"
-
+	"github.com/dh1tw/goHamlib"
+	termbox "github.com/nsf/termbox-go"
 	maidenhead "github.com/pd0mz/go-maidenhead"
 
-	termbox "github.com/nsf/termbox-go"
 	"github.com/tzneal/ham-go/adif"
 	"github.com/tzneal/ham-go/callsigns"
+	"github.com/tzneal/ham-go/dxcc"
 )
 
 type QSO struct {
@@ -37,10 +35,10 @@ type QSO struct {
 	entity           *ComboBox
 	operatorLocation *maidenhead.Point
 
-	rig rigcontrol.Rig
+	rig *goHamlib.Rig
 }
 
-func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig rigcontrol.Rig) *QSO {
+func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *QSO {
 	// call sign
 	pc := NewPanelController(theme)
 	pc.AddWidget(NewLabel(0, yPos, "Call"))
@@ -71,10 +69,10 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig rigcontrol.Rig) 
 		pc.AddWidget(band)
 
 	} else {
-		freqLabel = NewLabel(12, yPos+1, "rig-ctrl")
+		freqLabel = NewLabel(12, yPos+1, "")
 		pc.AddWidget(freqLabel)
 
-		bandLabel = NewLabel(23, yPos+1, "rig-ctrl")
+		bandLabel = NewLabel(23, yPos+1, "")
 		pc.AddWidget(bandLabel)
 	}
 
@@ -85,25 +83,29 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig rigcontrol.Rig) 
 	}
 	pc.AddWidget(mode)
 
-	pc.AddWidget(NewLabel(40, yPos, "SRST"))
-	srst := NewTextEdit(40, yPos+1)
+	np := 32 + mode.Width() + 2
+	pc.AddWidget(NewLabel(np, yPos, "SRST"))
+	srst := NewTextEdit(np, yPos+1)
 	srst.SetWidth(4)
 	srst.SetAllowedCharacterSet("[0-9]")
 	pc.AddWidget(srst)
 
-	pc.AddWidget(NewLabel(45, yPos, "RRST"))
-	rrst := NewTextEdit(45, yPos+1)
+	np += 5
+	pc.AddWidget(NewLabel(np, yPos, "RRST"))
+	rrst := NewTextEdit(np, yPos+1)
 	rrst.SetWidth(4)
 	rrst.SetAllowedCharacterSet("[0-9]")
 	pc.AddWidget(rrst)
 
-	pc.AddWidget(NewLabel(51, yPos, "SRX"))
-	srx := NewTextEdit(51, yPos+1)
+	np += 5
+	pc.AddWidget(NewLabel(np, yPos, "SRX"))
+	srx := NewTextEdit(np, yPos+1)
 	srx.SetWidth(5)
 	pc.AddWidget(srx)
 
-	pc.AddWidget(NewLabel(57, yPos, "STX"))
-	stx := NewTextEdit(57, yPos+1)
+	np += 6
+	pc.AddWidget(NewLabel(np, yPos, "STX"))
+	stx := NewTextEdit(np, yPos+1)
 	stx.SetWidth(5)
 	pc.AddWidget(stx)
 
@@ -188,11 +190,13 @@ func (q *QSO) SetDefaults() {
 }
 func (q *QSO) Redraw() {
 	if q.rig != nil {
-		status, err := q.rig.ReadStatus()
+		freq, err := q.rig.GetFreq(goHamlib.RIG_VFO_CURR)
+		freq /= 1e6
 		if err == nil {
-			q.freqLabel.SetText(strconv.FormatFloat(status.Frequency, 'f', -1, 64))
+			q.freqLabel.SetText(strconv.FormatFloat(freq, 'f', 5, 64))
+			q.bandLabel.SetText("     ") // clear
 			for _, b := range adif.Bands {
-				if status.Frequency >= b.Min && status.Frequency <= b.Max {
+				if freq >= b.Min && freq <= b.Max {
 					q.bandLabel.SetText(b.Name)
 				}
 			}

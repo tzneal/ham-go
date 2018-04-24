@@ -22,11 +22,11 @@ type QSOList struct {
 	onSelect         func(r adif.Record)
 }
 
-func NewQSOList(yPos int, log *adif.Log) *QSOList {
+func NewQSOList(yPos int, log *adif.Log, maxLines int) *QSOList {
 	ql := &QSOList{
 		yPos:     yPos,
 		log:      log,
-		maxLines: 5,
+		maxLines: maxLines,
 	}
 	return ql
 }

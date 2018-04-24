@@ -27,6 +27,14 @@ func BuildLookup(cfg map[string]LookupConfig) Lookup {
 			log.Fatalf("unknown lookup %s", k)
 		}
 	}
+
+	if len(lookups) == 0 {
+		// add the default DXCC if none are specified
+		fn, _ := registered["dxcc"]
+		if fn != nil {
+			lookups = append(lookups, fn(nil))
+		}
+	}
 	return NewMergedLookup(lookups)
 }
 

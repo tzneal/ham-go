@@ -6,20 +6,17 @@ import (
 	"log"
 	"os/user"
 	"strings"
-	"time"
 
-	termbox "github.com/nsf/termbox-go"
+	"github.com/dh1tw/goHamlib"
 
 	"github.com/BurntSushi/toml"
 	"github.com/tzneal/ham-go/adif"
-	"github.com/tzneal/ham-go/callsigns"
 	_ "github.com/tzneal/ham-go/callsigns/providers" // to register providers
-	"github.com/tzneal/ham-go/cmd/termlog/ui"
-	"github.com/tzneal/ham-go/rigcontrol"
 )
 
 func main() {
 	colorTest := flag.Bool("color-test", false, "display a color test")
+	hamlibList := flag.Bool("hamlib-list", false, "list the supported libhamlib devices")
 	config := flag.String("config", "~/.termlog.toml", "path to the configuration file")
 	flag.Parse()
 
@@ -28,9 +25,16 @@ func main() {
 		return
 	}
 
+	if *hamlibList {
+		for _, mdl := range goHamlib.ListModels() {
+			fmt.Println(" -", mdl.Manufacturer, mdl.Model)
+		}
+		return
+	}
+
 	cfg := NewConfig()
 
-	// load our condfig file
+	// load our config file
 	if strings.HasPrefix(*config, "~") {
 		usr, err := user.Current()
 		if err == nil {
@@ -44,17 +48,17 @@ func main() {
 	}
 
 	// are we connected to a radio?
-	var rig rigcontrol.Rig
+	var rig *goHamlib.Rig
 	if cfg.Rig.Enabled {
-		rig, err = rigcontrol.NewRig(cfg.Rig.Type, cfg.Rig.Config)
-		if err != nil {
+		goHamlib.SetDebugLevel(goHamlib.RIG_DEBUG_ERR)
+		rig, err = newRig(cfg.Rig)
+		if rig == nil || err != nil {
 			log.Fatalf("error connecting to rig: %s", err)
 		}
 		defer rig.Close()
 	}
 
 	// go open the log
-	lookup := callsigns.BuildLookup(cfg.Lookup)
 	var alog *adif.Log
 	if flag.NArg() > 0 {
 		alog, err = adif.ParseFile(flag.Arg(0))
@@ -81,41 +85,42 @@ func main() {
 	alog.SetHeader(adif.MyCounty, cfg.Operator.County)
 	alog.SetHeader(adif.MyCountry, cfg.Operator.Country)
 
-	c := ui.NewController(cfg.Theme)
-	c.RefreshEvery(250 * time.Millisecond)
+	mainScreen := newMainScreen(cfg, alog, rig)
+	for mainScreen.Tick() {
 
-	// status bar
-	sb := ui.NewStatusBar(0)
-	sb.AddText("termlog")
-	sb.AddClock("Local")
-	sb.AddText("/")
-	sb.AddClock("UTC")
-	c.AddWidget(sb)
+	}
+}
 
-	qso := ui.NewQSO(1, c.Theme(), lookup, rig)
-	c.AddWidget(qso)
-
-	qsoList := ui.NewQSOList(6, alog)
-	qsoList.OnSelect(func(r adif.Record) {
-		qso.SetRecord(r)
-	})
-	qso.SetOperatorGrid(cfg.Operator.Grid)
-	qsoList.SetOperatorGrid(cfg.Operator.Grid)
-	c.AddWidget(qsoList)
-
-	save := ui.NewButton(40, 3, " Save")
-	c.AddWidget(save)
-	c.Focus(qso)
-	save.OnClick(func() {
-		alog.Records = append(alog.Records, qso.GetRecord())
-		alog.Save()
-	})
-	for {
-		c.Redraw()
-
-		if !c.HandleEvent(termbox.PollEvent()) {
-			c.Shutdown()
-			break
+// newRig constructs a new rig using goHamlib
+func newRig(cfg Rig) (*goHamlib.Rig, error) {
+	rig := &goHamlib.Rig{}
+	// initialize
+	found := false
+	for _, mdl := range goHamlib.ListModels() {
+		if mdl.Manufacturer == cfg.Manufacturer && mdl.Model == cfg.Model {
+			found = true
+			if err := rig.Init(mdl.ModelID); err != nil {
+				return nil, err
+			}
 		}
 	}
+
+	if !found {
+		return nil, fmt.Errorf("unknown rig %s %s, try --hamlib-list", cfg.Manufacturer, cfg.Model)
+	}
+
+	p := goHamlib.Port{}
+	p.Portname = cfg.Port
+	p.Baudrate = cfg.BaudRate
+	p.Databits = cfg.DataBits
+	p.Stopbits = cfg.StopBits
+	p.Parity = goHamlib.N // TODO: make these three configurable
+	p.Handshake = goHamlib.NO_HANDSHAKE
+	p.RigPortType = goHamlib.RIG_PORT_SERIAL
+	rig.SetPort(p)
+	// and open the rig
+	if err := rig.Open(); err != nil {
+		return nil, err
+	}
+	return rig, nil
 }

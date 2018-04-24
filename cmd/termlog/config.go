@@ -16,9 +16,13 @@ type Operator struct {
 	Logdir  string
 }
 type Rig struct {
-	Type    string
-	Enabled bool
-	Config  map[string]interface{}
+	Enabled      bool
+	Manufacturer string
+	Model        string
+	Port         string // e.g. /dev/ttyUSB0
+	BaudRate     int
+	DataBits     int
+	StopBits     int
 }
 type Config struct {
 	Theme    ui.Theme
