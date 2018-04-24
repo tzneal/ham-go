@@ -79,18 +79,24 @@ func (t *TextEdit) Redraw() {
 func (t *TextEdit) OnChange(fn func(t string)) {
 	t.onChange = fn
 }
+
 func (t *TextEdit) HandleEvent(key input.Key) {
 	switch key {
 	case input.KeyBackspace, input.KeyBackspace2:
-		if len(t.value) > 0 {
-			t.value = t.value[0 : len(t.value)-1]
+		if len(t.value) > 0 && t.cursorPos > 0 {
+			t.value = append(t.value[:t.cursorPos-1], t.value[t.cursorPos:]...)
 			t.cursorPos--
 			if t.onChange != nil {
 				t.onChange(string(t.value))
 			}
 		}
 	case input.KeyDelete:
-
+		if len(t.value) > 0 && t.cursorPos < len(t.value) {
+			t.value = append(t.value[:t.cursorPos], t.value[t.cursorPos+1:]...)
+			if t.onChange != nil {
+				t.onChange(string(t.value))
+			}
+		}
 	case input.KeyArrowLeft:
 		if t.cursorPos > 0 {
 			t.cursorPos--
