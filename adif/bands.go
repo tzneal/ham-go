@@ -97,3 +97,13 @@ var Bands = []Band{
 	Band1_25M,
 	Band70CM,
 }
+
+// DetermineBand returns the band for a frequency in MHz
+func DetermineBand(freq float64) (Band, bool) {
+	for _, b := range Bands {
+		if freq >= b.Min && freq <= b.Max {
+			return b, true
+		}
+	}
+	return Band{}, false
+}

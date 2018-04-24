@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/tzneal/ham-go/cmd/termlog/input"
+
 	termbox "github.com/nsf/termbox-go"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 )
@@ -31,5 +33,5 @@ func ColorTest() {
 	}
 	ui.DrawText(x, y, " Press any key to exit", termbox.ColorWhite, termbox.ColorDefault)
 	termbox.Flush()
-	termbox.PollEvent()
+	input.ReadKeyEvent()
 }

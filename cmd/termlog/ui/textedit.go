@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"unicode"
 
+	"github.com/tzneal/ham-go/cmd/termlog/input"
+
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -37,6 +39,10 @@ func (t *TextEdit) SetController(c Controller) {
 }
 func (t *TextEdit) SetValue(s string) {
 	t.value = []rune(s)
+	t.cursorPos = len(t.value)
+}
+func (t *TextEdit) Width() int {
+	return t.width
 }
 func (t *TextEdit) SetWidth(n int) {
 	if n > 0 {
@@ -73,48 +79,47 @@ func (t *TextEdit) Redraw() {
 func (t *TextEdit) OnChange(fn func(t string)) {
 	t.onChange = fn
 }
-func (t *TextEdit) HandleEvent(ev termbox.Event) {
-	if ev.Type == termbox.EventKey {
-		switch ev.Key {
-		case termbox.KeyBackspace, termbox.KeyBackspace2:
-			if len(t.value) > 0 {
-				t.value = t.value[0 : len(t.value)-1]
-				t.cursorPos--
-				if t.onChange != nil {
-					t.onChange(string(t.value))
-				}
+func (t *TextEdit) HandleEvent(key input.Key) {
+	switch key {
+	case input.KeyBackspace, input.KeyBackspace2:
+		if len(t.value) > 0 {
+			t.value = t.value[0 : len(t.value)-1]
+			t.cursorPos--
+			if t.onChange != nil {
+				t.onChange(string(t.value))
 			}
+		}
+	case input.KeyDelete:
 
-		case termbox.KeyArrowLeft:
-			if t.cursorPos > 0 {
-				t.cursorPos--
+	case input.KeyArrowLeft:
+		if t.cursorPos > 0 {
+			t.cursorPos--
+		}
+	case input.KeyArrowRight:
+		if t.cursorPos < len(t.value) {
+			t.cursorPos++
+		}
+	case input.KeyTab:
+		t.controller.FocusNext()
+	case input.KeyShiftTab:
+		t.controller.FocusPrevious()
+	case input.KeyUnknown:
+		// just ignore
+	default:
+		if unicode.IsPrint(rune(key)) {
+			if t.forceUppercase {
+				key = input.Key(unicode.ToUpper(rune(key)))
 			}
-		case termbox.KeyArrowRight:
-			if t.cursorPos < len(t.value) {
-				t.cursorPos++
+			if t.charset != nil && !t.charset.MatchString(string(rune(key))) {
+				// doesn't match the characterset
+				return
 			}
-		case termbox.KeyTab:
-			t.controller.FocusNext()
-		default:
-			switch ev.Key {
-			case 32:
-				ev.Ch = ' '
-			}
-			if unicode.IsPrint(ev.Ch) {
-				if t.forceUppercase {
-					ev.Ch = unicode.ToUpper(ev.Ch)
-				}
-				if t.charset != nil && !t.charset.MatchString(string(ev.Ch)) {
-					// doesn't match the characterset
-					return
-				}
-				t.value = append(t.value, ' ')
-				copy(t.value[t.cursorPos+1:], t.value[t.cursorPos:])
-				t.value[t.cursorPos] = ev.Ch
-				t.cursorPos++
-				if t.onChange != nil {
-					t.onChange(string(t.value))
-				}
+			t.value = append(t.value, ' ')
+			copy(t.value[t.cursorPos+1:], t.value[t.cursorPos:])
+			t.value[t.cursorPos] = rune(key)
+			t.cursorPos++
+			if t.onChange != nil {
+				t.onChange(string(t.value))
 			}
 		}
 	}

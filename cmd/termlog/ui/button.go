@@ -1,6 +1,9 @@
 package ui
 
-import termbox "github.com/nsf/termbox-go"
+import (
+	termbox "github.com/nsf/termbox-go"
+	"github.com/tzneal/ham-go/cmd/termlog/input"
+)
 
 type Button struct {
 	xPos, yPos int
@@ -42,15 +45,13 @@ func (b *Button) OnClick(fn func()) {
 	b.clicked = fn
 }
 
-func (b *Button) HandleEvent(ev termbox.Event) {
-	if ev.Type == termbox.EventKey {
-		switch ev.Key {
-		case termbox.KeyTab:
-			b.controller.FocusNext()
-		case termbox.KeyEnter:
-			if b.clicked != nil {
-				b.clicked()
-			}
+func (b *Button) HandleEvent(key input.Key) {
+	switch key {
+	case input.KeyTab:
+		b.controller.FocusNext()
+	case input.KeyEnter:
+		if b.clicked != nil {
+			b.clicked()
 		}
 	}
 }

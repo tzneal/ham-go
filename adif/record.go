@@ -28,3 +28,16 @@ func (r Record) Get(id Identifier) string {
 	}
 	return ""
 }
+
+func (r Record) IsValid() bool {
+	if r.Get(Call) == "" {
+		return false
+	}
+	if r.Get(Frequency) == "" {
+		return false
+	}
+	if r.Get(TimeOn) == "" {
+		return false
+	}
+	return true
+}

@@ -1,6 +1,11 @@
 package ui
 
-import termbox "github.com/nsf/termbox-go"
+import (
+	"unicode"
+
+	termbox "github.com/nsf/termbox-go"
+	"github.com/tzneal/ham-go/cmd/termlog/input"
+)
 
 type ComboBox struct {
 	xPos, yPos int
@@ -48,21 +53,32 @@ func (c *ComboBox) AddItem(t string) {
 	c.items = append(c.items, t)
 }
 
-func (c *ComboBox) HandleEvent(ev termbox.Event) {
-	if ev.Type == termbox.EventKey {
-		switch ev.Key {
-		case termbox.KeyTab:
-			c.controller.FocusNext()
-		case termbox.KeyArrowDown:
-			c.selected++
-		case termbox.KeyArrowUp:
-			c.selected--
+func (c *ComboBox) HandleEvent(key input.Key) {
+	switch key {
+	case input.KeyTab:
+		c.controller.FocusNext()
+	case input.KeyArrowDown:
+		c.selected++
+	case input.KeyArrowUp:
+		c.selected--
+	default:
+		if (key > 'a' && key < 'z') || (key > 'A' && key < 'Z') || (key >= '0' && key <= '9') {
+			for i := c.selected + 1; i != c.selected; i++ {
+				i = i % len(c.items)
+				if len(c.items[i]) == 0 {
+					continue
+				}
+				if unicode.ToUpper(rune(c.items[i][0])) == unicode.ToUpper(rune(key)) {
+					c.selected = i
+					break
+				}
+			}
 		}
-		if c.selected < 0 {
-			c.selected = len(c.items) - 1
-		} else if c.selected >= len(c.items) {
-			c.selected = 0
-		}
+	}
+	if c.selected < 0 {
+		c.selected = len(c.items) - 1
+	} else if c.selected >= len(c.items) {
+		c.selected = 0
 	}
 }
 

@@ -1,6 +1,8 @@
 package ui
 
-import termbox "github.com/nsf/termbox-go"
+import (
+	"github.com/tzneal/ham-go/cmd/termlog/input"
+)
 
 type PanelController struct {
 	widgets []Widget
@@ -35,9 +37,9 @@ func (p *PanelController) Redraw() {
 	}
 }
 
-func (p *PanelController) HandleEvent(ev termbox.Event) {
+func (p *PanelController) HandleEvent(key input.Key) {
 	if p.focusIdx < len(p.focusable) {
-		p.focusable[p.focusIdx].HandleEvent(ev)
+		p.focusable[p.focusIdx].HandleEvent(key)
 	}
 }
 

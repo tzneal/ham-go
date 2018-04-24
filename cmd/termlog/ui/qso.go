@@ -3,8 +3,9 @@ package ui
 import (
 	"strconv"
 
+	"github.com/tzneal/ham-go/cmd/termlog/input"
+
 	"github.com/dh1tw/goHamlib"
-	termbox "github.com/nsf/termbox-go"
 	maidenhead "github.com/pd0mz/go-maidenhead"
 
 	"github.com/tzneal/ham-go/adif"
@@ -29,6 +30,8 @@ type QSO struct {
 	rrst      *TextEdit
 	srx       *TextEdit
 	stx       *TextEdit
+	date      *TextEdit
+	time      *TextEdit
 
 	name             *TextEdit
 	grid             *TextEdit
@@ -41,15 +44,16 @@ type QSO struct {
 func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *QSO {
 	// call sign
 	pc := NewPanelController(theme)
-	pc.AddWidget(NewLabel(0, yPos, "Call"))
-
-	call := NewTextEdit(0, yPos+1)
+	x := 0
+	pc.AddWidget(NewLabel(x, yPos, "Call"))
+	call := NewTextEdit(x, yPos+1)
 	call.SetForceUpperCase(true)
 	call.SetAllowedCharacterSet("[a-zA-Z0-9]")
 	pc.AddWidget(call)
 
-	pc.AddWidget(NewLabel(12, yPos, "Frequency"))
-	pc.AddWidget(NewLabel(23, yPos, "Band"))
+	x += 11
+	pc.AddWidget(NewLabel(x, yPos, "Frequency"))
+	pc.AddWidget(NewLabel(x+11, yPos, "Band"))
 
 	var freq *TextEdit
 	var freqLabel *Label
@@ -57,74 +61,97 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *
 	var bandLabel *Label
 	if rig == nil {
 		// frequency edit
-		freq = NewTextEdit(12, yPos+1)
+		freq = NewTextEdit(x, yPos+1)
 		freq.SetAllowedCharacterSet("[0-9.]")
 		pc.AddWidget(freq)
 
 		// band edit
-		band = NewComboBox(23, yPos+1)
+		band = NewComboBox(x+12, yPos+1)
 		for _, b := range adif.Bands {
 			band.AddItem(b.Name)
 		}
 		pc.AddWidget(band)
 
 	} else {
-		freqLabel = NewLabel(12, yPos+1, "")
+		freqLabel = NewLabel(x, yPos+1, "")
 		pc.AddWidget(freqLabel)
 
-		bandLabel = NewLabel(23, yPos+1, "")
+		bandLabel = NewLabel(x+11, yPos+1, "")
 		pc.AddWidget(bandLabel)
 	}
 
-	pc.AddWidget(NewLabel(32, 1, "Mode"))
-	mode := NewComboBox(32, 2)
+	x += 22
+
+	pc.AddWidget(NewLabel(x, 1, "Mode"))
+	mode := NewComboBox(x, 2)
+	mode.AddItem("")
 	for _, b := range adif.ModeList {
 		mode.AddItem(b)
 	}
 	pc.AddWidget(mode)
 
-	np := 32 + mode.Width() + 2
-	pc.AddWidget(NewLabel(np, yPos, "SRST"))
-	srst := NewTextEdit(np, yPos+1)
+	x += mode.Width() + 2
+
+	pc.AddWidget(NewLabel(x, yPos, "SRST"))
+	srst := NewTextEdit(x, yPos+1)
 	srst.SetWidth(4)
 	srst.SetAllowedCharacterSet("[0-9]")
 	pc.AddWidget(srst)
 
-	np += 5
-	pc.AddWidget(NewLabel(np, yPos, "RRST"))
-	rrst := NewTextEdit(np, yPos+1)
+	x += 5
+	pc.AddWidget(NewLabel(x, yPos, "RRST"))
+	rrst := NewTextEdit(x, yPos+1)
 	rrst.SetWidth(4)
 	rrst.SetAllowedCharacterSet("[0-9]")
 	pc.AddWidget(rrst)
 
-	np += 5
-	pc.AddWidget(NewLabel(np, yPos, "SRX"))
-	srx := NewTextEdit(np, yPos+1)
+	x += 5
+	pc.AddWidget(NewLabel(x, yPos, "SRX"))
+	srx := NewTextEdit(x, yPos+1)
 	srx.SetWidth(5)
 	pc.AddWidget(srx)
 
-	np += 6
-	pc.AddWidget(NewLabel(np, yPos, "STX"))
-	stx := NewTextEdit(np, yPos+1)
+	x += 6
+	pc.AddWidget(NewLabel(x, yPos, "STX"))
+	stx := NewTextEdit(x, yPos+1)
 	stx.SetWidth(5)
 	pc.AddWidget(stx)
 
-	pc.AddWidget(NewLabel(0, yPos+2, "Name"))
-	name := NewTextEdit(0, yPos+3)
-	name.SetWidth(20)
+	// second line
+	x = 0
+	pc.AddWidget(NewLabel(x, yPos+2, "Name"))
+	name := NewTextEdit(x, yPos+3)
+	name.SetWidth(21)
 	pc.AddWidget(name)
+	x += 22
 
-	pc.AddWidget(NewLabel(22, yPos+2, "Grid"))
-	grid := NewTextEdit(22, yPos+3)
+	pc.AddWidget(NewLabel(x, yPos+2, "Grid"))
+	grid := NewTextEdit(x, yPos+3)
 	grid.SetWidth(7)
 	pc.AddWidget(grid)
+	x += grid.Width() + 1
 
-	pc.AddWidget(NewLabel(30, yPos+2, "Entity"))
-	entity := NewComboBox(30, yPos+3)
+	pc.AddWidget(NewLabel(x, yPos+2, "DXCC Entity"))
+	entity := NewComboBox(x, yPos+3)
+	entity.AddItem("")
 	for _, v := range dxcc.Entities {
 		entity.AddItem(v.Entity)
 	}
 	pc.AddWidget(entity)
+	x += entity.Width() + 2
+
+	pc.AddWidget(NewLabel(x, yPos+2, "Date"))
+	date := NewTextEdit(x, yPos+3)
+	date.SetWidth(9)
+	date.SetAllowedCharacterSet("[0-9]")
+	pc.AddWidget(date)
+
+	x += 10
+	pc.AddWidget(NewLabel(x, yPos+2, "Time"))
+	time := NewTextEdit(x, yPos+3)
+	time.SetAllowedCharacterSet("[0-9]")
+	time.SetWidth(5)
+	pc.AddWidget(time)
 
 	qso := &QSO{
 		yPos:      yPos,
@@ -144,6 +171,8 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *
 		srx:       srx,
 		stx:       stx,
 		rig:       rig,
+		date:      date,
+		time:      time,
 	}
 
 	if freq != nil {
@@ -172,10 +201,9 @@ func (q *QSO) lookupCallsign() {
 func (q *QSO) syncBandWithFreqText(t string) {
 	freq, err := strconv.ParseFloat(t, 64)
 	if err == nil {
-		for _, b := range adif.Bands {
-			if freq >= b.Min && freq <= b.Max {
-				q.band.SetSelected(b.Name)
-			}
+		band, ok := adif.DetermineBand(freq)
+		if ok {
+			q.band.SetSelected(band.Name)
 		}
 	}
 }
@@ -184,10 +212,16 @@ func (q *QSO) SetDefaults() {
 	if q.freq != nil {
 		q.freq.SetValue("")
 	}
+	q.name.SetValue("")
+	q.grid.SetValue("")
 	q.call.SetValue("")
 	q.srst.SetValue("59")
 	q.rrst.SetValue("59")
+	q.entity.SetSelected("")
+	q.date.SetValue(adif.NowUTCDate())
+	q.time.SetValue(adif.NowUTCTime())
 }
+
 func (q *QSO) Redraw() {
 	if q.rig != nil {
 		freq, err := q.rig.GetFreq(goHamlib.RIG_VFO_CURR)
@@ -213,6 +247,14 @@ func (q *QSO) Call() string {
 	return q.call.Value()
 }
 
+func (q *QSO) FrequencyValue() float64 {
+	f64, err := strconv.ParseFloat(q.Frequency(), 64)
+	if err != nil {
+		return 0
+	}
+	return f64
+}
+
 func (q *QSO) Frequency() string {
 	return q.freq.Value()
 }
@@ -234,17 +276,20 @@ func (q *QSO) Focus(b bool) {
 	q.focused = b
 }
 
-func (q *QSO) HandleEvent(ev termbox.Event) {
-	if ev.Type == termbox.EventKey {
-		switch ev.Key {
-		case termbox.KeyTab:
-			if q.panel.FocusNext() {
-				q.panel.Unfocus()
-				q.controller.FocusNext()
-			}
-		default:
-			q.panel.HandleEvent(ev)
+func (q *QSO) HandleEvent(key input.Key) {
+	switch key {
+	case input.KeyTab:
+		if q.panel.FocusNext() {
+			q.panel.Unfocus()
+			q.controller.FocusNext()
 		}
+	case input.KeyShiftTab:
+		if q.panel.FocusPrevious() {
+			q.panel.Unfocus()
+			q.controller.FocusPrevious()
+		}
+	default:
+		q.panel.HandleEvent(key)
 	}
 }
 
@@ -323,6 +368,12 @@ func (q *QSO) GetRecord() adif.Record {
 			Value: q.stx.Value(),
 		})
 
+	record = append(record,
+		adif.Field{
+			Name:  adif.DXCC,
+			Value: q.entity.Value(),
+		})
+
 	// add a distance value computed from the grid locations
 	if q.grid.Value() != "" && q.operatorLocation != nil {
 		otherLoc, err := maidenhead.ParseLocator(q.grid.Value())
@@ -340,9 +391,20 @@ func (q *QSO) GetRecord() adif.Record {
 }
 
 func (q *QSO) SetRecord(r adif.Record) {
+	q.call.SetValue(r.Get(adif.Call))
 	q.freq.SetValue(r.Get(adif.Frequency))
+	q.mode.SetSelected(r.Get(adif.AMode))
 	q.name.SetValue(r.Get(adif.Name))
+	q.rrst.SetValue(r.Get(adif.RSTReceived))
+	q.srst.SetValue(r.Get(adif.RSTSent))
+	q.srx.SetValue(r.Get(adif.SRX_String))
+	q.stx.SetValue(r.Get(adif.STXString))
+	q.grid.SetValue(r.Get(adif.GridSquare))
+	q.entity.SetSelected(r.Get(adif.DXCC))
+	q.time.SetValue(r.Get(adif.TimeOn))
+	q.date.SetValue(r.Get(adif.QSODateStart))
 }
+
 func (q *QSO) SetOperatorGrid(grid string) {
 	if len(grid) > 0 {
 		pt, err := maidenhead.ParseLocator(grid)
@@ -350,4 +412,12 @@ func (q *QSO) SetOperatorGrid(grid string) {
 			q.operatorLocation = &pt
 		}
 	}
+}
+
+func (q *QSO) IsValid() bool {
+	return q.Call() != "" && q.Frequency() != ""
+}
+func (q *QSO) ResetDateTime() {
+	q.date.SetValue(adif.NowUTCDate())
+	q.time.SetValue(adif.NowUTCTime())
 }

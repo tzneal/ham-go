@@ -11,4 +11,7 @@ type Theme struct {
 
 	ComboBoxFg termbox.Attribute
 	ComboBoxBg termbox.Attribute
+
+	QSOListHeaderFG termbox.Attribute
+	QSOListHeaderBG termbox.Attribute
 }

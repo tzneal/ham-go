@@ -1,6 +1,6 @@
 package ui
 
-import termbox "github.com/nsf/termbox-go"
+import "github.com/tzneal/ham-go/cmd/termlog/input"
 
 type Widget interface {
 	Redraw()
@@ -9,5 +9,5 @@ type Widget interface {
 
 type Focusable interface {
 	Focus(b bool)
-	HandleEvent(ev termbox.Event)
+	HandleEvent(key input.Key)
 }
