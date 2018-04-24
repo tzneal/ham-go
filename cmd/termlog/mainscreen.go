@@ -42,7 +42,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 	qso := ui.NewQSO(1, c.Theme(), lookup, rig)
 	c.AddWidget(qso)
 
-	qsoList := ui.NewQSOList(6, alog, 10, cfg.Theme)
+	qsoList := ui.NewQSOList(8, alog, 10, cfg.Theme)
 	qsoList.OnSelect(func(r adif.Record) {
 		qso.SetRecord(r)
 	})

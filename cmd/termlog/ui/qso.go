@@ -34,6 +34,7 @@ type QSO struct {
 	time      *TextEdit
 
 	name             *TextEdit
+	notes            *TextEdit
 	grid             *TextEdit
 	entity           *ComboBox
 	operatorLocation *maidenhead.Point
@@ -153,6 +154,13 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *
 	time.SetWidth(5)
 	pc.AddWidget(time)
 
+	// third line
+	x = 0
+	pc.AddWidget(NewLabel(x, yPos+4, "Notes"))
+	notes := NewTextEdit(x, yPos+5)
+	notes.SetWidth(40)
+	pc.AddWidget(notes)
+
 	qso := &QSO{
 		yPos:      yPos,
 		panel:     pc,
@@ -173,6 +181,7 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *
 		rig:       rig,
 		date:      date,
 		time:      time,
+		notes:     notes,
 	}
 
 	if freq != nil {
@@ -218,6 +227,7 @@ func (q *QSO) SetDefaults() {
 	q.srst.SetValue("59")
 	q.rrst.SetValue("59")
 	q.entity.SetSelected("")
+	q.notes.SetValue("")
 	q.date.SetValue(adif.NowUTCDate())
 	q.time.SetValue(adif.NowUTCTime())
 }
@@ -374,6 +384,12 @@ func (q *QSO) GetRecord() adif.Record {
 			Value: q.entity.Value(),
 		})
 
+	record = append(record,
+		adif.Field{
+			Name:  adif.Notes,
+			Value: q.notes.Value(),
+		})
+
 	// add a distance value computed from the grid locations
 	if q.grid.Value() != "" && q.operatorLocation != nil {
 		otherLoc, err := maidenhead.ParseLocator(q.grid.Value())
@@ -403,6 +419,7 @@ func (q *QSO) SetRecord(r adif.Record) {
 	q.entity.SetSelected(r.Get(adif.DXCC))
 	q.time.SetValue(r.Get(adif.TimeOn))
 	q.date.SetValue(r.Get(adif.QSODateStart))
+	q.notes.SetValue(r.Get(adif.Notes))
 }
 
 func (q *QSO) SetOperatorGrid(grid string) {
