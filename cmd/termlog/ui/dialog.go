@@ -37,7 +37,7 @@ func YesNoQuestion(msg string) bool {
 		switch key {
 		case input.KeyEscape:
 			return false
-		case input.KeyTab, input.KeyShiftTab:
+		case input.KeyTab, input.KeyShiftTab, input.KeyArrowLeft, input.KeyArrowRight:
 			ret = !ret
 		case input.KeyEnter:
 			return ret

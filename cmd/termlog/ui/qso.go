@@ -13,6 +13,7 @@ import (
 	"github.com/tzneal/ham-go/dxcc"
 )
 
+// QSO is the qso editor
 type QSO struct {
 	yPos       int
 	panel      *PanelController
@@ -42,6 +43,7 @@ type QSO struct {
 	rig *goHamlib.Rig
 }
 
+// NewQSO constructs a new QSO editor
 func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *QSO {
 	// call sign
 	pc := NewPanelController(theme)
@@ -49,7 +51,7 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *
 	pc.AddWidget(NewLabel(x, yPos, "Call"))
 	call := NewTextEdit(x, yPos+1)
 	call.SetForceUpperCase(true)
-	call.SetAllowedCharacterSet("[a-zA-Z0-9]")
+	call.SetAllowedCharacterSet("[a-zA-Z0-9/]")
 	pc.AddWidget(call)
 
 	x += 11

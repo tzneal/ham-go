@@ -11,6 +11,15 @@ func DrawText(x, y int, text string, fg, bg termbox.Attribute) {
 	}
 }
 
+func DrawTextPad(x, y int, text string, pad int, fg, bg termbox.Attribute) {
+	for i, char := range text {
+		termbox.SetCell(x+i, y, char, fg, bg)
+	}
+	for i := len(text); i < pad; i++ {
+		termbox.SetCell(x+i, y, ' ', fg, bg)
+	}
+}
+
 func DrawRunes(x, y int, text []rune, fg, bg termbox.Attribute) {
 	for i, char := range text {
 		termbox.SetCell(x+i, y, char, fg, bg)

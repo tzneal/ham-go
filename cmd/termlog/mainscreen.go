@@ -15,6 +15,7 @@ import (
 	"github.com/tzneal/ham-go/callsigns"
 	"github.com/tzneal/ham-go/cmd/termlog/input"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
+	"github.com/tzneal/ham-go/dxcluster"
 )
 
 type mainScreen struct {
@@ -50,11 +51,21 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 	qsoList.SetOperatorGrid(cfg.Operator.Grid)
 	c.AddWidget(qsoList)
 
+	// dxc.nc7j.com
+	// dxspots.com
+
+	dxclient, err := dxcluster.Dial("tcp", "dxc.ww1r.com:7300")
+	if err == nil {
+		dxclient.Login("KN4LHY")
+		dxclient.Run()
+		dxlist := ui.NewDXClusterList(20, dxclient, 10, cfg.Theme)
+		c.AddWidget(dxlist)
+	}
+	fb := ui.NewStatusBar(30)
 	if rig != nil {
-		sb := ui.NewStatusBar(20)
-		sb.AddText(rig.Caps.MfgName)
-		sb.AddText(rig.Caps.ModelName)
-		sb.AddFunction(func() string {
+		fb.AddText(rig.Caps.MfgName)
+		fb.AddText(rig.Caps.ModelName)
+		fb.AddFunction(func() string {
 			lvl, err := rig.GetLevel(goHamlib.RIG_VFO_CURR, goHamlib.RIG_LEVEL_STRENGTH)
 			if err == nil {
 				return fmt.Sprintf("S %0.1f", lvl)
@@ -62,7 +73,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 			return ""
 		}, 6)
 
-		sb.AddFunction(func() string {
+		fb.AddFunction(func() string {
 			lvl, err := rig.GetLevel(goHamlib.RIG_VFO_CURR, goHamlib.RIG_LEVEL_RFPOWER)
 			if err == nil {
 				return fmt.Sprintf("P %0.1f", lvl)
@@ -70,7 +81,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 			return ""
 		}, 6)
 
-		sb.AddFunction(func() string {
+		fb.AddFunction(func() string {
 			mode, _, err := rig.GetMode(goHamlib.RIG_VFO_CURR)
 			if err == nil {
 				return goHamlib.ModeName[mode]
@@ -78,10 +89,9 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 			return ""
 		}, 5)
 
-		c.AddWidget(sb)
+		c.AddWidget(fb)
 	}
 
-	fb := ui.NewStatusBar(25)
 	fb.AddFunction(func() string {
 		freq, err := strconv.ParseFloat(qso.Frequency(), 64)
 		if err != nil {

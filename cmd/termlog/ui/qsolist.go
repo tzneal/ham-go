@@ -176,6 +176,9 @@ func (q *QSOList) SetController(c Controller) {
 
 func (q *QSOList) Focus(b bool) {
 	q.focused = b
+	if b {
+		termbox.HideCursor()
+	}
 	if b && q.onSelect != nil && q.selected >= 0 && q.selected < len(q.log.Records) {
 		q.onSelect(q.log.Records[q.selected])
 	}
@@ -208,6 +211,7 @@ func (q *QSOList) HandleEvent(key input.Key) {
 			rec := q.log.Records[q.selected]
 			if YesNoQuestion(fmt.Sprintf("Permanently delete this QSO (%s)?", rec.Get(adif.Call))) {
 				q.log.Records = append(q.log.Records[:q.selected], q.log.Records[q.selected+1:]...)
+				q.log.Save()
 			}
 		}
 	}
@@ -250,7 +254,7 @@ func (q *QSOList) logStatus() string {
 		}
 	}
 
-	// to ensure sored output
+	// to ensure sorted output
 	for _, b := range adif.Bands {
 		count, ok := bands[b.Name]
 		if ok && count > 0 {
