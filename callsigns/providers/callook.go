@@ -26,7 +26,9 @@ func (c *callook) Lookup(call string) (*callsigns.Response, error) {
 	if len(call) < 2 {
 		return nil, errors.New("invalid callsign")
 	}
-	rsp, err := http.Get(fmt.Sprintf("https://callook.info/%s/json", call))
+
+	prefix, realCall, suffix := callsigns.Parse(call)
+	rsp, err := http.Get(fmt.Sprintf("https://callook.info/%s/json", realCall))
 	if err != nil {
 		return nil, err
 	}
@@ -40,6 +42,8 @@ func (c *callook) Lookup(call string) (*callsigns.Response, error) {
 		return nil, errors.New("invalid callsign")
 	}
 	cs := &callsigns.Response{}
+	cs.Call = realCall
+
 	if len(js.Name) > 0 {
 		cs.Name = &js.Name
 	}
@@ -61,6 +65,19 @@ func (c *callook) Lookup(call string) (*callsigns.Response, error) {
 		cs.DXCC = &ent.DXCC
 		cs.CQZone = &ent.CQZone
 		cs.ITUZone = &ent.ITUZone
+	}
+
+	// has a prefix, so look that up and possibly overwrite what we've got for
+	// the call location
+	if prefix != "" {
+		cs.CallPrefix = &prefix
+		dx, ok := dxcc.Lookup(prefix)
+		if ok {
+			callsigns.AssignDXCC(dx, cs)
+		}
+	}
+	if suffix != "" {
+		cs.CallSuffix = &suffix
 	}
 
 	return cs, nil

@@ -7,10 +7,10 @@ import (
 )
 
 func TestCallookup(t *testing.T) {
-	lu := providers.NewCallookInfo()
-	rsp, err := lu.Lookup("w1aw")
+	lu := providers.NewCallookInfo(nil)
+	rsp, err := lu.Lookup("w1aw/p")
 	if err != nil {
-		t.Errorf("error looking up w1aw: %s", err)
+		t.Fatalf("error looking up w1aw: %s", err)
 	}
 	exp := "ARRL HQ OPERATORS CLUB"
 	if *rsp.Name != exp {
