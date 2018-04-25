@@ -27,7 +27,8 @@ func TestLookup(t *testing.T) {
 		{
 			call:   "UI9XA",
 			entity: "European Russia",
-		}, {
+		},
+		{
 			call:   "ZS85SARL",
 			entity: "South Africa",
 		},
