@@ -26,11 +26,11 @@ func ColorTest() {
 			x = 0
 			y++
 		}
-		ui.DrawText(x, y, fmt.Sprintf("0x%02x", i), termbox.ColorWhite, termbox.ColorDefault)
+		ui.DrawText(x, y, fmt.Sprintf("% 3d", i), termbox.ColorBlack, termbox.Attribute(i))
 		x += 5
-		ui.DrawText(x, y, "   ", termbox.Attribute(i), termbox.Attribute(i))
-		x += 3
 	}
+	x = 0
+	y++
 	ui.DrawText(x, y, " Press any key to exit", termbox.ColorWhite, termbox.ColorDefault)
 	termbox.Flush()
 	input.ReadKeyEvent()

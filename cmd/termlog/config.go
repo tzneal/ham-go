@@ -8,6 +8,7 @@ import (
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 )
 
+// Operator is configuration info about the person operating the station.
 type Operator struct {
 	Name    string
 	Email   string
@@ -17,8 +18,10 @@ type Operator struct {
 	County  string
 	State   string
 	Country string
-	Logdir  string
+	Logdir  string // directory to store logs
 }
+
+// Rig is the radio that may be controlled
 type Rig struct {
 	Enabled      bool
 	Manufacturer string
@@ -29,19 +32,33 @@ type Rig struct {
 	StopBits     int
 }
 
+// DXCluster allows enabled DXCluster monitoring
+type DXCluster struct {
+	Enabled bool
+	Debug   bool
+	Server  string
+	Port    int
+}
+
+// Label is a label that will be displayed when tuned to a particular frequency.
+// The start/end are the limits.
 type Label struct {
 	Name  string
 	Start float64
 	End   float64
 }
+
+// Config is the top level configuraton structure corresponding to ~/.termlog
 type Config struct {
-	Operator Operator
-	Rig      Rig
-	Lookup   map[string]callsigns.LookupConfig
-	Label    []Label
-	Theme    ui.Theme
+	Operator  Operator
+	Rig       Rig
+	Lookup    map[string]callsigns.LookupConfig
+	DXCluster DXCluster
+	Theme     ui.Theme
+	Label     []Label
 }
 
+// SaveAs saves a config file to disk.
 func (c *Config) SaveAs(filename string) error {
 	f, err := os.Create(filename)
 	if err != nil {
@@ -51,6 +68,8 @@ func (c *Config) SaveAs(filename string) error {
 	enc := toml.NewEncoder(f)
 	return enc.Encode(c)
 }
+
+// NewConfig constructs a new default configuration.
 func NewConfig() *Config {
 	cfg := &Config{}
 	cfg.Operator.Logdir = "~/termlog/"

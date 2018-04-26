@@ -51,15 +51,14 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 	qsoList.SetOperatorGrid(cfg.Operator.Grid)
 	c.AddWidget(qsoList)
 
-	// dxc.nc7j.com
-	// dxspots.com
-
-	dxclient, err := dxcluster.Dial("tcp", "dxc.ww1r.com:7300")
-	if err == nil {
-		dxclient.Login("KN4LHY")
-		dxclient.Run()
-		dxlist := ui.NewDXClusterList(20, dxclient, 10, cfg.Theme)
-		c.AddWidget(dxlist)
+	if cfg.DXCluster.Enabled {
+		dxclient, err := dxcluster.Dial("tcp", fmt.Sprintf("%s:%d", cfg.DXCluster.Server, cfg.DXCluster.Port))
+		if err == nil {
+			dxclient.Login(cfg.Operator.Call)
+			dxclient.Run()
+			dxlist := ui.NewDXClusterList(20, dxclient, 10, cfg.Theme)
+			c.AddWidget(dxlist)
+		}
 	}
 
 	fb := ui.NewStatusBar(-1)
