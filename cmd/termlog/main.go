@@ -22,6 +22,7 @@ func main() {
 	colorTest := flag.Bool("color-test", false, "display a color test")
 	hamlibList := flag.Bool("hamlib-list", false, "list the supported libhamlib devices")
 	keyTest := flag.Bool("key-test", false, "list keyboard events")
+	upgradeConfig := flag.Bool("upgrade-config", false, "upgrade the configuration file to the latest format")
 	config := flag.String("config", "~/.termlog.toml", "path to the configuration file")
 	flag.Parse()
 
@@ -52,6 +53,14 @@ func main() {
 		if err := cfg.SaveAs(*config); err != nil {
 			log.Fatalf("unable to create config file %s: %s", *config, err)
 		}
+	}
+
+	if *upgradeConfig {
+		if err := cfg.SaveAs(*config); err != nil {
+			log.Fatalf("unable to upgrade config file %s: %s", *config, err)
+		}
+		fmt.Println("config file upgraded")
+		return
 	}
 
 	// are we connected to a radio?
