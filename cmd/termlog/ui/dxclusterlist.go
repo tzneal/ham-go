@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"strconv"
 
 	termbox "github.com/nsf/termbox-go"
@@ -36,8 +35,6 @@ func NewDXClusterList(yPos int, dxc *dxcluster.Client, maxLines int, theme Theme
 
 func (d *DXClusterList) Redraw() {
 	w, _ := termbox.Size()
-	hdrFg := d.theme.QSOListHeaderFG
-	hdrBg := d.theme.QSOListHeaderBG
 
 	select {
 	case spot := <-d.dxc.Spots:
@@ -50,14 +47,9 @@ func (d *DXClusterList) Redraw() {
 	default:
 	}
 
-	for x := 0; x < w; x++ {
-		termbox.SetCell(x, d.yPos, ' ', hdrFg, hdrBg)
-	}
-	DrawText(0, d.yPos, fmt.Sprintf("%d %d", d.offset, d.selected), hdrFg, hdrBg)
-
 	for line := 0; line < d.maxLines; line++ {
 		idx := len(d.spots) - line - 1 - d.offset
-		curLine := d.yPos + line + 1
+		curLine := d.yPos + line
 
 		fg := termbox.ColorWhite
 		bg := termbox.ColorDefault

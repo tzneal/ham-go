@@ -51,7 +51,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 	qso.SetOperatorGrid(cfg.Operator.Grid)
 	qsoList.SetOperatorGrid(cfg.Operator.Grid)
 	c.AddWidget(qsoList)
-	yPos += 10
+	yPos += 12
 
 	// is the DX Cluster monitoring enabled?
 	if cfg.DXCluster.Enabled {
