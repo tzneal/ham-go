@@ -194,7 +194,15 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *
 	return qso
 }
 
+func (q *QSO) Height() int {
+	return 7
+}
+
 func (q *QSO) lookupCallsign() {
+	if len(q.Call()) < 2 {
+		return
+	}
+
 	rsp, err := q.lookup.Lookup(q.Call())
 	if err == nil {
 		if rsp.Name != nil && q.Name() == "" {
@@ -319,12 +327,12 @@ func (q *QSO) GetRecord() adif.Record {
 	record = append(record,
 		adif.Field{
 			Name:  adif.QSODateStart,
-			Value: adif.NowUTCDate(),
+			Value: q.date.Value(),
 		})
 	record = append(record,
 		adif.Field{
 			Name:  adif.TimeOn,
-			Value: adif.NowUTCTime(),
+			Value: q.time.Value(),
 		})
 	record = append(record,
 		adif.Field{
@@ -436,6 +444,7 @@ func (q *QSO) SetOperatorGrid(grid string) {
 func (q *QSO) IsValid() bool {
 	return q.Call() != "" && q.Frequency() != ""
 }
+
 func (q *QSO) ResetDateTime() {
 	q.date.SetValue(adif.NowUTCDate())
 	q.time.SetValue(adif.NowUTCTime())

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strconv"
 
 	termbox "github.com/nsf/termbox-go"
@@ -11,6 +12,7 @@ import (
 type DXClusterList struct {
 	yPos       int
 	maxLines   int
+	maxEntries int // maximum number of spots to keep
 	theme      Theme
 	offset     int
 	selected   int
@@ -18,14 +20,16 @@ type DXClusterList struct {
 	controller Controller
 	spots      []dxcluster.Spot
 	dxc        *dxcluster.Client
+	onTune     func(freq float64)
 }
 
 func NewDXClusterList(yPos int, dxc *dxcluster.Client, maxLines int, theme Theme) *DXClusterList {
 	ql := &DXClusterList{
-		yPos:     yPos,
-		dxc:      dxc,
-		maxLines: maxLines,
-		theme:    theme,
+		yPos:       yPos,
+		dxc:        dxc,
+		maxLines:   maxLines,
+		theme:      theme,
+		maxEntries: 100,
 	}
 	return ql
 }
@@ -38,22 +42,28 @@ func (d *DXClusterList) Redraw() {
 	select {
 	case spot := <-d.dxc.Spots:
 		d.spots = append(d.spots, spot)
+		// possibly remove the oldest one
+		if len(d.spots) > d.maxEntries {
+			copy(d.spots, d.spots[1:])
+			d.spots = d.spots[0 : len(d.spots)-1]
+		}
 	default:
 	}
 
 	for x := 0; x < w; x++ {
 		termbox.SetCell(x, d.yPos, ' ', hdrFg, hdrBg)
 	}
+	DrawText(0, d.yPos, fmt.Sprintf("%d %d", d.offset, d.selected), hdrFg, hdrBg)
 
 	for line := 0; line < d.maxLines; line++ {
-		idx := d.offset + line
+		idx := len(d.spots) - line - 1 - d.offset
 		curLine := d.yPos + line + 1
 
 		fg := termbox.ColorWhite
 		bg := termbox.ColorDefault
 
 		// draw selected lines differnetly while focused
-		if d.selected == idx && d.focused {
+		if d.selected == d.offset+line && d.focused {
 			fg = termbox.ColorBlack
 			bg = termbox.ColorWhite
 		}
@@ -63,15 +73,15 @@ func (d *DXClusterList) Redraw() {
 			xPos := 0
 			Clear(xPos, curLine, xPos+w-xPos, curLine, fg, bg)
 			DrawText(xPos, curLine, spot.Spotter, fg, bg)
-			xPos += 15
+			xPos += 10
 			DrawText(xPos, curLine, strconv.FormatFloat(spot.Frequency, 'f', -1, 64), fg, bg)
-			xPos += 15
+			xPos += 10
 			DrawText(xPos, curLine, spot.DXStation, fg, bg)
-			xPos += 15
+			xPos += 10
 			DrawText(xPos, curLine, spot.Comment, fg, bg)
 			xPos += 40
 			DrawText(xPos, curLine, spot.Time, fg, bg)
-			xPos += 8
+			xPos += 6
 			DrawText(xPos, curLine, spot.Location, fg, bg)
 		} else {
 			Clear(0, curLine, w-1, curLine, termbox.ColorDefault, termbox.ColorDefault)
@@ -89,6 +99,7 @@ func (d *DXClusterList) Focus(b bool) {
 		termbox.HideCursor()
 	}
 }
+
 func (d *DXClusterList) HandleEvent(key input.Key) {
 
 	switch key {
@@ -98,7 +109,9 @@ func (d *DXClusterList) HandleEvent(key input.Key) {
 		d.controller.FocusPrevious()
 	case input.KeyEnter:
 		if d.selected >= 0 && d.selected < len(d.spots) {
-			println("TUNE TO", d.spots[d.selected].Frequency/1e3)
+			if d.onTune != nil {
+				d.onTune(d.spots[len(d.spots)-d.selected-1].Frequency)
+			}
 		}
 	case input.KeyArrowUp:
 		if d.selected > 0 {
@@ -108,11 +121,15 @@ func (d *DXClusterList) HandleEvent(key input.Key) {
 			}
 		}
 	case input.KeyArrowDown:
-		if d.selected < len(d.spots)-1 {
+		if d.selected+d.offset < len(d.spots)-1 {
 			d.selected++
 			if d.selected >= d.offset+d.maxLines {
 				d.offset++
 			}
 		}
 	}
+}
+
+func (d *DXClusterList) OnTune(fn func(freq float64)) {
+	d.onTune = fn
 }

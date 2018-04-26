@@ -124,7 +124,8 @@ func (q *QSOList) Redraw() {
 	}
 
 	for line := 0; line < q.maxLines; line++ {
-		idx := q.offset + line
+		idx := len(q.log.Records) - line - 1 - q.offset
+
 		curLine := q.yPos + line + 1
 		if idx >= 0 && idx < len(q.log.Records) {
 			rec := q.log.Records[idx]
@@ -132,7 +133,7 @@ func (q *QSOList) Redraw() {
 			bg := termbox.ColorDefault
 
 			// draw selected lines differnetly while focused
-			if q.selected == idx && q.focused {
+			if q.selected == q.offset+line && q.focused {
 				fg = termbox.ColorBlack
 				bg = termbox.ColorWhite
 			}
@@ -180,8 +181,16 @@ func (q *QSOList) Focus(b bool) {
 		termbox.HideCursor()
 	}
 	if b && q.onSelect != nil && q.selected >= 0 && q.selected < len(q.log.Records) {
-		q.onSelect(q.log.Records[q.selected])
+		q.onSelect(q.SelectedRecord())
 	}
+}
+
+func (q *QSOList) SelectedIndex() int {
+	return len(q.log.Records) - q.selected - 1
+}
+
+func (q *QSOList) SelectedRecord() adif.Record {
+	return q.log.Records[len(q.log.Records)-q.selected-1]
 }
 func (q *QSOList) HandleEvent(key input.Key) {
 	raiseSelect := false
@@ -208,16 +217,24 @@ func (q *QSOList) HandleEvent(key input.Key) {
 		}
 	case input.KeyDelete:
 		if q.selected >= 0 && q.selected < len(q.log.Records) {
-			rec := q.log.Records[q.selected]
+			rec := q.SelectedRecord()
 			if YesNoQuestion(fmt.Sprintf("Permanently delete this QSO (%s)?", rec.Get(adif.Call))) {
-				q.log.Records = append(q.log.Records[:q.selected], q.log.Records[q.selected+1:]...)
+				idx := len(q.log.Records) - q.selected - 1
+				q.log.Records = append(q.log.Records[:idx], q.log.Records[idx+1:]...)
 				q.log.Save()
 			}
 		}
 	}
 
+	// take care of fixing the index when deleting all the records
+	if q.selected >= len(q.log.Records) {
+		q.selected = len(q.log.Records) - 1
+	}
+	if q.selected < 0 {
+		q.selected = 0
+	}
 	if raiseSelect && q.onSelect != nil && q.selected >= 0 && q.selected < len(q.log.Records) {
-		q.onSelect(q.log.Records[q.selected])
+		q.onSelect(q.SelectedRecord())
 	}
 }
 
@@ -262,4 +279,8 @@ func (q *QSOList) logStatus() string {
 		}
 	}
 	return sb.String()
+}
+
+func (q *QSOList) SetMaxLines(m int) {
+	q.maxLines = m
 }

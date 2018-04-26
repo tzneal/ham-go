@@ -34,10 +34,11 @@ type Rig struct {
 
 // DXCluster allows enabled DXCluster monitoring
 type DXCluster struct {
-	Enabled bool
-	Debug   bool
-	Server  string
-	Port    int
+	Enabled    bool
+	Debug      bool
+	Server     string
+	Port       int
+	ZoneLookup bool
 }
 
 // Label is a label that will be displayed when tuned to a particular frequency.
@@ -90,6 +91,7 @@ func NewConfig() *Config {
 	cfg.Lookup["callook"] = callsigns.LookupConfig{}
 	cfg.Lookup["dxcc"] = callsigns.LookupConfig{}
 
+	cfg.DXCluster.ZoneLookup = true
 	// 160 meters
 	cfg.Label = append(cfg.Label, Label{
 		Name:  "E/A/G/Data/Phone",

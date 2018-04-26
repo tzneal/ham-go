@@ -47,6 +47,9 @@ func NewMergedLookup(lookups []Lookup) Lookup {
 }
 
 func (m merged) Lookup(call string) (*Response, error) {
+	if len(call) < 2 {
+		return nil, errors.New("lookup failed")
+	}
 	for _, v := range m.lookups {
 		rsp, err := v.Lookup(call)
 		if rsp != nil && err == nil {

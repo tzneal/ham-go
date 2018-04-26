@@ -25,6 +25,7 @@ type mainScreen struct {
 	alog       *adif.Log
 	repo       *git.Repository
 	cfg        *Config
+	editingQSO bool // are we editing a QSO, or creating a new one?
 }
 
 func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHamlib.Rig) *mainScreen {
@@ -32,33 +33,48 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 	c.RefreshEvery(250 * time.Millisecond)
 
 	// status bar
-	sb := ui.NewStatusBar(0)
+	yPos := 0
+	sb := ui.NewStatusBar(yPos)
 	sb.AddText("termlog")
 	sb.AddClock("Local")
 	sb.AddText("/")
 	sb.AddClock("UTC")
 	c.AddWidget(sb)
+	yPos++
 
 	lookup := callsigns.BuildLookup(cfg.Lookup)
-	qso := ui.NewQSO(1, c.Theme(), lookup, rig)
+	qso := ui.NewQSO(yPos, c.Theme(), lookup, rig)
 	c.AddWidget(qso)
+	yPos += qso.Height()
 
-	qsoList := ui.NewQSOList(8, alog, 10, cfg.Theme)
-	qsoList.OnSelect(func(r adif.Record) {
-		qso.SetRecord(r)
-	})
+	qsoList := ui.NewQSOList(yPos, alog, 10, cfg.Theme)
 	qso.SetOperatorGrid(cfg.Operator.Grid)
 	qsoList.SetOperatorGrid(cfg.Operator.Grid)
 	c.AddWidget(qsoList)
+	yPos += 10
 
+	// is the DX Cluster monitoring enabled?
 	if cfg.DXCluster.Enabled {
-		dxclient, err := dxcluster.Dial("tcp", fmt.Sprintf("%s:%d", cfg.DXCluster.Server, cfg.DXCluster.Port))
-		if err == nil {
-			dxclient.Login(cfg.Operator.Call)
-			dxclient.Run()
-			dxlist := ui.NewDXClusterList(20, dxclient, 10, cfg.Theme)
-			c.AddWidget(dxlist)
+		dcfg := dxcluster.Config{
+			Network:    "tcp",
+			Address:    fmt.Sprintf("%s:%d", cfg.DXCluster.Server, cfg.DXCluster.Port),
+			Callsign:   cfg.Operator.Call,
+			ZoneLookup: cfg.DXCluster.ZoneLookup,
 		}
+		dxclient := dxcluster.NewClient(dcfg)
+		dxclient.Run()
+		dxlist := ui.NewDXClusterList(yPos, dxclient, 8, cfg.Theme)
+		if rig != nil {
+			dxlist.OnTune(func(f float64) {
+				f = f / 1e3
+				rig.SetFreq(goHamlib.RIG_VFO_CURR, f)
+			})
+		}
+		c.AddWidget(dxlist)
+
+	} else {
+		// not enabled so enlarge the QSO List
+		qsoList.SetMaxLines(17)
 	}
 
 	fb := ui.NewStatusBar(-1)
@@ -118,12 +134,19 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 		alog:       alog,
 		repo:       repo,
 		cfg:        cfg,
+		editingQSO: false,
 	}
+
+	qsoList.OnSelect(func(r adif.Record) {
+		qso.SetRecord(r)
+		ms.editingQSO = true
+	})
+
 	c.AddCommand(input.KeyCtrlH, ms.showHelp)
 	c.AddCommand(input.KeyCtrlL, ms.focusQSOList)
-	c.AddCommand(input.KeyCtrlN, ms.newContact)
+	c.AddCommand(input.KeyCtrlN, ms.newQSO)
 	c.AddCommand(input.KeyCtrlD, ms.qso.ResetDateTime)
-	c.AddCommand(input.KeyCtrlS, ms.saveContact)
+	c.AddCommand(input.KeyCtrlS, ms.saveQSO)
 	c.AddCommand(input.KeyCtrlB, ms.saveBookmark)
 	c.AddCommand(input.KeyCtrlG, ms.commitLog)
 
@@ -175,10 +198,11 @@ func (m *mainScreen) saveBookmark() {
 	}
 }
 
-func (m *mainScreen) newContact() {
+func (m *mainScreen) newQSO() {
 	result := ui.YesNoQuestion("Create New Contact?")
 	if result {
 		m.qso.SetDefaults()
+		m.editingQSO = false
 		m.controller.Focus(m.qso)
 	}
 }
@@ -186,12 +210,18 @@ func (m *mainScreen) newContact() {
 func (m *mainScreen) focusQSOList() {
 	m.controller.Focus(m.qsoList)
 }
-func (m *mainScreen) saveContact() {
+func (m *mainScreen) saveQSO() {
 	if m.qso.IsValid() || ui.YesNoQuestion("Missing callsign or frequency, save anyway?") {
-		m.alog.Records = append(m.alog.Records, m.qso.GetRecord())
-		m.alog.Save()
-		m.qso.SetDefaults()
-		m.controller.Focus(m.qso)
+		if m.editingQSO {
+			idx := m.qsoList.SelectedIndex()
+			m.alog.Records[idx] = m.qso.GetRecord()
+			m.alog.Save()
+		} else {
+			m.alog.Records = append(m.alog.Records, m.qso.GetRecord())
+			m.alog.Save()
+			m.qso.SetDefaults()
+			m.controller.Focus(m.qso)
+		}
 	}
 }
 
@@ -202,7 +232,8 @@ func (m *mainScreen) showHelp() {
 	sb.WriteString("QSO\n")
 	sb.WriteString("Ctrl+N - New QSO\n")
 	sb.WriteString("Ctrl+S - Save QSO\n")
-	sb.WriteString("Ctrl+D - Set Date/Time\n")
+	sb.WriteString("Ctrl+D - Set Date/Time on QSO to current time\n")
+	sb.WriteString("Ctrl+G - Commit log file to git\n")
 	sb.WriteString("         to current time\n")
 	sb.WriteString("\n")
 	sb.WriteString("Press ESC to close")

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"log"
 	"time"
 
 	"github.com/tzneal/ham-go/cmd/termlog/input"
@@ -29,7 +30,7 @@ type MainController struct {
 func NewController(thm Theme) *MainController {
 	err := termbox.Init()
 	if err != nil {
-		panic(err)
+		log.Fatalf("error initializing termbox: %s", err)
 	}
 	termbox.SetInputMode(termbox.InputAlt)
 	termbox.SetOutputMode(termbox.Output256)
