@@ -61,7 +61,8 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 		dxlist := ui.NewDXClusterList(20, dxclient, 10, cfg.Theme)
 		c.AddWidget(dxlist)
 	}
-	fb := ui.NewStatusBar(30)
+
+	fb := ui.NewStatusBar(-1)
 	if rig != nil {
 		fb.AddText(rig.Caps.MfgName)
 		fb.AddText(rig.Caps.ModelName)
