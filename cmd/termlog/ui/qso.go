@@ -236,6 +236,8 @@ func (q *QSO) SetDefaults() {
 	q.call.SetValue("")
 	q.srst.SetValue("59")
 	q.rrst.SetValue("59")
+	q.srx.SetValue("")
+	q.stx.SetValue("")
 	q.entity.SetSelected("")
 	q.notes.SetValue("")
 	q.date.SetValue(adif.NowUTCDate())
