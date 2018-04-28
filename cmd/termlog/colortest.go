@@ -9,6 +9,7 @@ import (
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 )
 
+// ColorTest displays the 256 color codes to support letting users edit their theme
 func ColorTest() {
 	err := termbox.Init()
 	if err != nil {

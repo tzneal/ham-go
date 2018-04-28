@@ -449,3 +449,11 @@ func (q *QSO) ResetDateTime() {
 	q.date.SetValue(adif.NowUTCDate())
 	q.time.SetValue(adif.NowUTCTime())
 }
+
+func (q *QSO) SetFrequency(f float64) {
+	if q.rig != nil {
+		q.rig.SetFreq(goHamlib.RIG_VFO_CURR, f)
+	} else {
+		q.freq.SetValue(strconv.FormatFloat(f, 'f', -1, 64))
+	}
+}

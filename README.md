@@ -26,13 +26,6 @@ go install github.com/tzneal/ham-go/cmd/termlog
 2) Fill out the operator section at a minimum
 
 # Commands
-
-c.AddCommand(input.KeyCtrlL, ms.focusQSOList)
-	c.AddCommand(input.KeyCtrlN, ms.newQSO)
-	c.AddCommand(input.KeyCtrlD, ms.qso.ResetDateTime)
-	c.AddCommand(input.KeyCtrlS, ms.saveQSO)
-	c.AddCommand(input.KeyCtrlB, ms.saveBookmark)
-	c.AddCommand(input.KeyCtrlG, ms.commitLog)
     
 | Shortcut | Command |
 |----------|---------|
@@ -42,7 +35,8 @@ c.AddCommand(input.KeyCtrlL, ms.focusQSOList)
 | Ctrl+D   | Set the QSO time on to the current time |
 | Ctrl+S   | Save the QSO to the log and start a new one |
 | Ctrl+G   | Commit the current logfile to git |
-
+| Ctrl+B   | Save a bookmark |
+| Alt+B    | Open the bookmark list |
 
 
 ## adif

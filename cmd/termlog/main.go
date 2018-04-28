@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
@@ -12,7 +11,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/dh1tw/goHamlib"
-	termbox "github.com/nsf/termbox-go"
+	ham "github.com/tzneal/ham-go"
 	"github.com/tzneal/ham-go/adif"
 	_ "github.com/tzneal/ham-go/callsigns/providers" // to register providers
 	git "gopkg.in/src-d/go-git.v4"
@@ -50,13 +49,13 @@ func main() {
 	_, err := toml.DecodeFile(*config, cfg)
 	if err != nil {
 		log.Printf("unable to read %s, trying to create it: %s", *config, err)
-		if err := cfg.SaveAs(*config); err != nil {
+		if err = cfg.SaveAs(*config); err != nil {
 			log.Fatalf("unable to create config file %s: %s", *config, err)
 		}
 	}
 
 	if *upgradeConfig {
-		if err := cfg.SaveAs(*config); err != nil {
+		if err = cfg.SaveAs(*config); err != nil {
 			log.Fatalf("unable to upgrade config file %s: %s", *config, err)
 		}
 		fmt.Println("config file upgraded")
@@ -84,7 +83,7 @@ func main() {
 		}
 	} else {
 		// ensure the log directory exists
-		if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		if !ham.FileOrDirectoryExists(logDir) {
 			os.MkdirAll(logDir, 0755)
 		}
 		// try to open a default log for today
@@ -108,60 +107,24 @@ func main() {
 	alog.SetHeader(adif.MyCountry, cfg.Operator.Country)
 
 	logRepo, _ := git.PlainOpen(logDir)
-	mainScreen := newMainScreen(cfg, alog, logRepo, rig)
+	var bookmarks *ham.Bookmarks
+	bmFile := filepath.Join(logDir, "bookmarks.toml")
+	if ham.FileOrDirectoryExists(bmFile) {
+		bookmarks, err = ham.OpenBookmarks(bmFile)
+		if err != nil {
+			log.Fatalf("unable to open bookmarks file: %s", err)
+		}
+	} else {
+		bookmarks = &ham.Bookmarks{}
+		bookmarks.Filename = bmFile
+		if err = bookmarks.Save(); err != nil {
+			log.Fatalf("unable to create bookmarks file: %s", err)
+		}
+	}
+
+	mainScreen := newMainScreen(cfg, alog, logRepo, bookmarks, rig)
 	for mainScreen.Tick() {
 
-	}
-}
-
-// newRig constructs a new rig using goHamlib
-func newRig(cfg Rig) (*goHamlib.Rig, error) {
-	rig := &goHamlib.Rig{}
-	// initialize
-	found := false
-	for _, mdl := range goHamlib.ListModels() {
-		if mdl.Manufacturer == cfg.Manufacturer && mdl.Model == cfg.Model {
-			found = true
-			if err := rig.Init(mdl.ModelID); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if !found {
-		return nil, fmt.Errorf("unknown rig model %s %s, try --hamlib-list", cfg.Manufacturer, cfg.Model)
-	}
-
-	p := goHamlib.Port{}
-	p.Portname = cfg.Port
-	p.Baudrate = cfg.BaudRate
-	p.Databits = cfg.DataBits
-	p.Stopbits = cfg.StopBits
-	p.Parity = goHamlib.ParityNone // TODO: make configurable
-	p.Handshake = goHamlib.HandshakeNone
-	p.RigPortType = goHamlib.RigPortSerial
-	rig.SetPort(p)
-	// and open the rig
-	if err := rig.Open(); err != nil {
-		return nil, err
-	}
-	return rig, nil
-}
-
-func KeyTest() {
-	termbox.Init()
-	defer termbox.Close()
-	termbox.SetInputMode(termbox.InputAlt)
-	termbox.SetOutputMode(termbox.Output256)
-
-	for {
-		d := [10]byte{}
-		ev := termbox.PollRawEvent(d[:])
-		fmt.Println("Event: ", hex.EncodeToString(d[0:ev.N]))
-		if ev.N == 1 && d[0] == 0x03 {
-			fmt.Println("Ctrl+C pressed, exiting")
-			return
-		}
 	}
 }
 

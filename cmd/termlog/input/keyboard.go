@@ -2,12 +2,16 @@ package input
 
 import (
 	"log"
+	"strings"
 
 	termbox "github.com/nsf/termbox-go"
 )
 
+// Key is a key type
 type Key int
 
+// Key constants
+//go:generate stringer -type=Key
 const (
 	KeyCtrlA      Key = 0x01
 	KeyCtrlB      Key = 0x02
@@ -47,7 +51,35 @@ const (
 	KeyArrowDown
 	KeyArrowLeft
 	KeyArrowRight
+	KeyAltEnter
+	KeyAltB
+	keyLastKey
 )
+
+var keyMap = map[string]Key{}
+
+func init() {
+	for i := KeyCtrlA; i < keyLastKey; i++ {
+		s := i.String()
+		if strings.Index(s, "(") == -1 {
+			keyMap[s] = i
+		}
+	}
+}
+
+func ParseKeyEvent(d []byte) Key {
+	switch len(d) {
+	case 1:
+		return Key(d[0])
+	case 2:
+		return parse2(d[0:2])
+	case 3:
+		return parse3(d[0:3])
+	case 4:
+		return parse4(d[0:4])
+	}
+	return KeyUnknown
+}
 
 func ReadKeyEvent() Key {
 	d := [10]byte{}
@@ -55,10 +87,29 @@ func ReadKeyEvent() Key {
 	switch ev.N {
 	case 1:
 		return Key(d[0])
+	case 2:
+		return parse2(d[0:2])
 	case 3:
 		return parse3(d[0:3])
 	case 4:
 		return parse4(d[0:4])
+	}
+	return KeyUnknown
+}
+
+func parse2(d []byte) Key {
+	if len(d) != 2 {
+		log.Println("expected a two byte event, got", d)
+		return KeyUnknown
+	}
+	switch d[0] {
+	case 0x1b: // escape
+		switch d[1] {
+		case 0x0d:
+			return KeyAltEnter
+		case 0x62:
+			return KeyAltB
+		}
 	}
 	return KeyUnknown
 }

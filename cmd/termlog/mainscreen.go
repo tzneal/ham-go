@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dh1tw/goHamlib"
+	termbox "github.com/nsf/termbox-go"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 
@@ -23,12 +24,13 @@ type mainScreen struct {
 	qso        *ui.QSO
 	qsoList    *ui.QSOList
 	alog       *adif.Log
+	bookmarks  *ham.Bookmarks
 	repo       *git.Repository
 	cfg        *Config
 	editingQSO bool // are we editing a QSO, or creating a new one?
 }
 
-func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHamlib.Rig) *mainScreen {
+func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks *ham.Bookmarks, rig *goHamlib.Rig) *mainScreen {
 	c := ui.NewController(cfg.Theme)
 	c.RefreshEvery(250 * time.Millisecond)
 
@@ -134,6 +136,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 		alog:       alog,
 		repo:       repo,
 		cfg:        cfg,
+		bookmarks:  bookmarks,
 		editingQSO: false,
 	}
 
@@ -147,6 +150,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, rig *goHam
 	c.AddCommand(input.KeyCtrlN, ms.newQSO)
 	c.AddCommand(input.KeyCtrlD, ms.qso.ResetDateTime)
 	c.AddCommand(input.KeyCtrlS, ms.saveQSO)
+	c.AddCommand(input.KeyAltB, ms.listBookmarks)
 	c.AddCommand(input.KeyCtrlB, ms.saveBookmark)
 	c.AddCommand(input.KeyCtrlG, ms.commitLog)
 
@@ -189,12 +193,46 @@ func (m *mainScreen) saveBookmark() {
 	b := ham.Bookmark{}
 	b.Created = time.Now()
 	b.Frequency = m.qso.FrequencyValue()
-	bm := ham.Bookmarks{}
-	bm.AddBookmark(b)
-	bm.AddBookmark(b)
-	bm.AddBookmark(b)
-	if err := bm.WriteToFile("/tmp/a.txt"); err != nil {
-		panic(err)
+	notes, ok := ui.InputString(m.controller, fmt.Sprintf("Notes for %f", b.Frequency))
+	if !ok {
+		return
+	}
+	b.Notes = notes
+	m.bookmarks.AddBookmark(b)
+	if err := m.bookmarks.Save(); err != nil {
+		// TODO: splash the error
+	}
+
+}
+
+func (m *mainScreen) listBookmarks() {
+	bml := ui.NewBookmarkList(5, m.bookmarks, 20, m.cfg.Theme)
+	pc := ui.NewPanelController(m.cfg.Theme)
+	pc.AddWidget(bml)
+	pc.Focus(bml)
+lfor:
+	for {
+		pc.Redraw()
+		termbox.Flush()
+		ev := input.ReadKeyEvent()
+		switch ev {
+		case input.KeyEscape:
+			break lfor
+		case input.KeyEnter:
+			idx := bml.Selected()
+			if idx >= 0 && idx < len(m.bookmarks.Bookmark) {
+				m.qso.SetFrequency(m.bookmarks.Bookmark[idx].Frequency)
+			}
+			break lfor
+		case input.KeyDelete:
+			idx := bml.Selected()
+			if idx >= 0 && idx < len(m.bookmarks.Bookmark) {
+				m.bookmarks.RemoveAt(idx)
+				m.bookmarks.Save()
+			}
+		default:
+			pc.HandleEvent(ev)
+		}
 	}
 }
 
