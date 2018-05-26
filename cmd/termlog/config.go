@@ -10,15 +10,16 @@ import (
 
 // Operator is configuration info about the person operating the station.
 type Operator struct {
-	Name    string
-	Email   string
-	Call    string
-	Grid    string
-	City    string
-	County  string
-	State   string
-	Country string
-	Logdir  string // directory to store logs
+	Name        string
+	Email       string
+	Call        string
+	Grid        string
+	City        string
+	County      string
+	State       string
+	Country     string
+	Logdir      string // directory to store logs
+	NewLogDaily bool
 }
 
 // Rig is the radio that may be controlled

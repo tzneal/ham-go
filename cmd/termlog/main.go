@@ -87,7 +87,13 @@ func main() {
 			os.MkdirAll(logDir, 0755)
 		}
 		// try to open a default log for today
-		fn := fmt.Sprintf(expandPath("%s/%s.adif"), logDir, adif.NowUTCDate())
+		var fn string
+		if cfg.Operator.NewLogDaily {
+			fn = fmt.Sprintf(expandPath("%s/%s.adif"), logDir, adif.NowUTCDate())
+		} else {
+			fn = fmt.Sprintf(expandPath("%s/termlog.adif"), logDir)
+		}
+
 		log.Printf("opening log file %s\n", fn)
 		alog, err = adif.ParseFile(fn)
 		// not found/couldn't read it so create a new one
