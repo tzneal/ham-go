@@ -69,7 +69,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		if rig != nil {
 			dxlist.OnTune(func(f float64) {
 				f = f / 1e3
-				rig.SetFreq(goHamlib.RIG_VFO_CURR, f)
+				rig.SetFreq(goHamlib.VFOCurrent, f)
 			})
 		}
 		c.AddWidget(dxlist)
@@ -84,15 +84,15 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		fb.AddText(rig.Caps.MfgName)
 		fb.AddText(rig.Caps.ModelName)
 		fb.AddFunction(func() string {
-			lvl, err := rig.GetLevel(goHamlib.RIG_VFO_CURR, goHamlib.RIG_LEVEL_STRENGTH)
+			lvl, err := rig.GetLevel(goHamlib.VFOCurrent, goHamlib.RIG_LEVEL_STRENGTH)
 			if err == nil {
 				return fmt.Sprintf("S %0.1f", lvl)
 			}
 			return ""
-		}, 6)
+		}, 7)
 
 		fb.AddFunction(func() string {
-			lvl, err := rig.GetLevel(goHamlib.RIG_VFO_CURR, goHamlib.RIG_LEVEL_RFPOWER)
+			lvl, err := rig.GetLevel(goHamlib.VFOCurrent, goHamlib.RIG_LEVEL_RFPOWER)
 			if err == nil {
 				return fmt.Sprintf("P %0.1f", lvl)
 			}
@@ -100,7 +100,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		}, 6)
 
 		fb.AddFunction(func() string {
-			mode, _, err := rig.GetMode(goHamlib.RIG_VFO_CURR)
+			mode, _, err := rig.GetMode(goHamlib.VFOCurrent)
 			if err == nil {
 				return goHamlib.ModeName[mode]
 			}

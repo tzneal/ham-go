@@ -65,7 +65,7 @@ func main() {
 	// are we connected to a radio?
 	var rig *goHamlib.Rig
 	if cfg.Rig.Enabled {
-		goHamlib.SetDebugLevel(goHamlib.RIG_DEBUG_ERR)
+		goHamlib.SetDebugLevel(goHamlib.DebugErr)
 		rig, err = newRig(cfg.Rig)
 		if rig == nil || err != nil {
 			log.Fatalf("error connecting to rig: %s", err)

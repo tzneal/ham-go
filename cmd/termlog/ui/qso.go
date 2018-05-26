@@ -246,7 +246,7 @@ func (q *QSO) SetDefaults() {
 
 func (q *QSO) Redraw() {
 	if q.rig != nil {
-		freq, err := q.rig.GetFreq(goHamlib.RIG_VFO_CURR)
+		freq, err := q.rig.GetFreq(goHamlib.VFOCurrent)
 		freq /= 1e6
 		if err == nil {
 			q.freqLabel.SetText(strconv.FormatFloat(freq, 'f', 5, 64))
@@ -454,7 +454,7 @@ func (q *QSO) ResetDateTime() {
 
 func (q *QSO) SetFrequency(f float64) {
 	if q.rig != nil {
-		q.rig.SetFreq(goHamlib.RIG_VFO_CURR, f)
+		q.rig.SetFreq(goHamlib.VFOCurrent, f)
 	} else {
 		q.freq.SetValue(strconv.FormatFloat(f, 'f', -1, 64))
 	}
