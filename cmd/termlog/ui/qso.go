@@ -278,10 +278,20 @@ func (q *QSO) FrequencyValue() float64 {
 }
 
 func (q *QSO) Frequency() string {
-	return q.freq.Value()
+	if q.freq != nil {
+		return q.freq.Value()
+	}
+	f, err := q.rig.GetFreq(goHamlib.VFOCurrent)
+	if err != nil {
+		return ""
+	}
+	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
 func (q *QSO) Band() string {
+	if q.bandLabel != nil {
+		return q.bandLabel.GetText()
+	}
 	return q.band.Value()
 }
 func (q *QSO) Mode() string {

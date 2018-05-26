@@ -30,3 +30,7 @@ func (l *Label) Redraw() {
 func (l *Label) SetText(text string) {
 	l.text = text
 }
+
+func (l *Label) GetText() string {
+	return l.text
+}
