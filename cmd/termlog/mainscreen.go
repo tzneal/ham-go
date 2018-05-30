@@ -141,8 +141,10 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	}
 
 	qsoList.OnSelect(func(r adif.Record) {
-		qso.SetRecord(r)
-		ms.editingQSO = true
+		if !qso.HasRig() {
+			qso.SetRecord(r)
+			ms.editingQSO = true
+		}
 	})
 
 	c.AddCommand(input.KeyCtrlH, ms.showHelp)

@@ -194,6 +194,10 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *
 	return qso
 }
 
+func (q *QSO) HasRig() bool {
+	return q.rig != nil
+}
+
 func (q *QSO) Height() int {
 	return 7
 }
@@ -230,6 +234,21 @@ func (q *QSO) syncBandWithFreqText(t string) {
 func (q *QSO) SetDefaults() {
 	if q.freq != nil {
 		q.freq.SetValue("")
+	}
+	if q.rig != nil {
+		mode, _, err := q.rig.GetMode(goHamlib.VFOCurrent)
+		if err == nil {
+			switch mode {
+			case goHamlib.ModeLSB, goHamlib.ModeUSB:
+				q.mode.SetSelected("SSB")
+			case goHamlib.ModeCW:
+				q.mode.SetSelected("CW")
+			default:
+				q.mode.SetSelected("")
+			}
+		}
+	} else {
+		q.mode.SetSelected("")
 	}
 	q.name.SetValue("")
 	q.grid.SetValue("")
@@ -285,7 +304,7 @@ func (q *QSO) Frequency() string {
 	if err != nil {
 		return ""
 	}
-	return strconv.FormatFloat(f, 'f', -1, 64)
+	return strconv.FormatFloat(f/1e6, 'f', -1, 64)
 }
 
 func (q *QSO) Band() string {
@@ -294,6 +313,7 @@ func (q *QSO) Band() string {
 	}
 	return q.band.Value()
 }
+
 func (q *QSO) Mode() string {
 	return q.mode.Value()
 }
@@ -430,7 +450,11 @@ func (q *QSO) GetRecord() adif.Record {
 
 func (q *QSO) SetRecord(r adif.Record) {
 	q.call.SetValue(r.Get(adif.Call))
-	q.freq.SetValue(r.Get(adif.Frequency))
+	if q.freq != nil {
+		q.freq.SetValue(r.Get(adif.Frequency))
+	} else {
+		q.freqLabel.SetText(r.Get(adif.Frequency))
+	}
 	q.mode.SetSelected(r.Get(adif.AMode))
 	q.name.SetValue(r.Get(adif.Name))
 	q.rrst.SetValue(r.Get(adif.RSTReceived))
