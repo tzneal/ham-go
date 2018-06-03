@@ -1,38 +1,14 @@
 package wsjtx_test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 
+	"github.com/tzneal/ham-go/adif"
+
 	"github.com/tzneal/ham-go/wsjtx"
 )
-
-/*
-func TestListen(t *testing.T) {
-	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:2237")
-	if err != nil {
-		t.Fatalf("err resolving: %s", err)
-	}
-	conn, err := net.ListenUDP("udp", addr)
-	if err != nil {
-		t.Fatalf("err listening: %s", err)
-	}
-
-	buf := make([]byte, 8192)
-
-	for {
-		n, addr, err := conn.ReadFromUDP(buf)
-		fmt.Println("Received ", string(buf[0:n]), " from ", addr)
-
-		wsjtx.Decode(buf[0:n])
-		if err != nil {
-			fmt.Println("Error: ", err)
-		}
-	}
-}
-*/
 
 func TestQSOLogged(t *testing.T) {
 	f, err := os.Open("testdata/qsologged.wsjtx")
@@ -44,6 +20,23 @@ func TestQSOLogged(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reading qsologged.wsjtx: %s", err)
 	}
+	dec, err := wsjtx.Decode(buf)
+	if err != nil {
+		t.Errorf("expected nil error, got %s", err)
+	}
 
-	fmt.Println(wsjtx.Decode(buf))
+	qlog := dec.(*wsjtx.QSOLogged)
+
+	exp := "20180528"
+	got := adif.UTCDate(qlog.QSOOff)
+	if got != exp {
+		t.Errorf("expected date = %s, got %s", exp, got)
+	}
+
+	exp = "2045"
+	got = adif.UTCTime(qlog.QSOOff)
+	if got != exp {
+		t.Errorf("expected time = %s, got %s", exp, got)
+	}
+
 }

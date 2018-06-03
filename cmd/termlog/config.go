@@ -54,6 +54,7 @@ type Label struct {
 type Config struct {
 	Operator  Operator
 	Rig       Rig
+	WSJTX     WSJTX
 	Lookup    map[string]callsigns.LookupConfig
 	DXCluster DXCluster
 	Theme     ui.Theme
@@ -71,10 +72,17 @@ func (c *Config) SaveAs(filename string) error {
 	return enc.Encode(c)
 }
 
+// WSJTX controls WJSTX logging
+type WSJTX struct {
+	Enabled bool
+	Address string
+}
+
 // NewConfig constructs a new default configuration.
 func NewConfig() *Config {
 	cfg := &Config{}
 	cfg.Operator.Logdir = "~/termlog/"
+	cfg.WSJTX.Address = "127.0.0.1:2237"
 
 	cfg.Theme.StatusBg = 40 // light blue
 	cfg.Theme.StatusFg = 1

@@ -17,6 +17,7 @@ import (
 	"github.com/tzneal/ham-go/cmd/termlog/input"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 	"github.com/tzneal/ham-go/dxcluster"
+	"github.com/tzneal/ham-go/wsjtx"
 )
 
 type mainScreen struct {
@@ -27,6 +28,8 @@ type mainScreen struct {
 	bookmarks  *ham.Bookmarks
 	repo       *git.Repository
 	cfg        *Config
+	wsjtxLog   *wsjtx.Server
+
 	editingQSO bool // are we editing a QSO, or creating a new one?
 }
 
@@ -146,6 +149,14 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 			ms.editingQSO = true
 		}
 	})
+
+	if cfg.WSJTX.Enabled {
+		wsjtxLog, err := wsjtx.NewServer(cfg.WSJTX.Address)
+		if err == nil {
+			ms.wsjtxLog = wsjtxLog
+			ms.wsjtxLog.Run()
+		}
+	}
 
 	c.AddCommand(input.KeyCtrlH, ms.showHelp)
 	c.AddCommand(input.KeyCtrlL, ms.focusQSOList)
@@ -283,9 +294,111 @@ func (m *mainScreen) showHelp() {
 func (m *mainScreen) Tick() bool {
 	m.controller.Redraw()
 
+	if m.cfg.WSJTX.Enabled {
+		select {
+		case msg := <-m.wsjtxLog.Messages:
+			switch v := msg.(type) {
+			case *wsjtx.QSOLogged:
+				arec, err := convertToADIF(v)
+				if err == nil {
+					m.alog.Records = append(m.alog.Records, arec)
+					m.alog.Save()
+				}
+				// TODO: log the error?
+			}
+		default:
+		}
+	}
 	if !m.controller.HandleEvent(input.ReadKeyEvent()) {
 		m.controller.Shutdown()
 		return false
 	}
 	return true
+}
+
+func convertToADIF(msg *wsjtx.QSOLogged) (adif.Record, error) {
+	record := adif.Record{}
+
+	record = append(record,
+		adif.Field{
+			Name:  adif.QSODateStart,
+			Value: adif.UTCDate(msg.QSOOn),
+		})
+	record = append(record,
+		adif.Field{
+			Name:  adif.TimeOn,
+			Value: adif.UTCTime(msg.QSOOn),
+		})
+
+	record = append(record,
+		adif.Field{
+			Name:  adif.QSODateEnd,
+			Value: adif.UTCDate(msg.QSOOff),
+		})
+	record = append(record,
+		adif.Field{
+			Name:  adif.TimeOff,
+			Value: adif.UTCTime(msg.QSOOff),
+		})
+
+	record = append(record,
+		adif.Field{
+			Name:  adif.Call,
+			Value: msg.DXCall,
+		})
+	record = append(record,
+		adif.Field{
+			Name:  adif.AMode,
+			Value: msg.Mode,
+		})
+	record = append(record,
+		adif.Field{
+			Name:  adif.Frequency,
+			Value: strconv.FormatFloat(msg.Frequency, 'f', -1, 64),
+		})
+	b, found := adif.DetermineBand(msg.Frequency)
+	if found {
+		record = append(record,
+			adif.Field{
+				Name:  adif.ABand,
+				Value: b.Name,
+			})
+	}
+
+	record = append(record,
+		adif.Field{
+			Name:  adif.RSTSent,
+			Value: msg.RST,
+		})
+
+	record = append(record,
+		adif.Field{
+			Name:  adif.RSTReceived,
+			Value: msg.RRT,
+		})
+
+	record = append(record,
+		adif.Field{
+			Name:  adif.GridSquare,
+			Value: msg.DXGrid,
+		})
+	record = append(record,
+		adif.Field{
+			Name:  adif.Name,
+			Value: msg.Name,
+		})
+
+	record = append(record,
+		adif.Field{
+			Name:  adif.Comment,
+			Value: msg.Comments,
+		})
+
+	record = append(record,
+		adif.Field{
+			Name:  adif.TXPower,
+			Value: msg.TXPower,
+		})
+
+	return record, nil
 }

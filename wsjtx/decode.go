@@ -7,11 +7,14 @@ import (
 	"time"
 )
 
+// WSJTMagic is the WSJT-X magic that prefixes messages
 const WSJTMagic = 0xadbccbda
 
+// MessageCode is a WSJT-X message code
 //go:generate stringer -type=MessageCode
 type MessageCode uint32
 
+// WSJT-X message op codes
 const (
 	MessageHeartbeat  MessageCode = 0
 	MessageStatus     MessageCode = 1
@@ -26,6 +29,7 @@ const (
 	MessageWSPRDecode MessageCode = 10
 )
 
+// Decode decodes a WSJT-X message
 func Decode(b []byte) (Message, error) {
 	offset := 0
 	magic := binary.BigEndian.Uint32(b[offset:])
@@ -47,9 +51,7 @@ func Decode(b []byte) (Message, error) {
 	case MessageQSOLogged:
 		return decodeQSOLogged(b[offset:])
 	}
-	/*if code == MessageQSOLogged {
-		ioutil.WriteFile(fmt.Sprintf("QSOLogged-%d", rand.Intn(100)), b, 0644)
-	}*/
+
 	return nil, errors.New("unsupported message")
 }
 
@@ -59,57 +61,57 @@ func decodeQSOLogged(b []byte) (Message, error) {
 
 	id, idSz := parseUTF8(b[offset:])
 	offset += idSz
-	fmt.Println("ID IS", id)
+	msg.ID = id
 
 	dateOff, err := decodeQDateTime(b[offset:])
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(dateOff, err)
 	offset += 13
 
 	dxCall, dxCallSz := parseUTF8(b[offset:])
 	offset += dxCallSz
 	dxGrid, dxGridSz := parseUTF8(b[offset:])
 	offset += dxGridSz
-	fmt.Println("DX Call", dxCall)
-	fmt.Println("DX Grid", dxGrid)
+	msg.DXCall = dxCall
+	msg.DXGrid = dxGrid
 
 	freq := binary.BigEndian.Uint64(b[offset:])
-	fmt.Println("FREQ", freq)
+	f := float64(freq) / 1e6
+	msg.Frequency = f
 	offset += 8
 
 	mode, modeSz := parseUTF8(b[offset:])
 	offset += modeSz
-	fmt.Println("mode", mode)
+	msg.Mode = mode
 
 	rst, rstSz := parseUTF8(b[offset:])
 	offset += rstSz
-	fmt.Println("rst", rst)
+	msg.RST = rst
 
 	rrt, rrtSz := parseUTF8(b[offset:])
 	offset += rrtSz
-	fmt.Println("rrt", rrt)
+	msg.RRT = rrt
 
 	txPwr, txPwrSz := parseUTF8(b[offset:])
 	offset += txPwrSz
-	fmt.Println("tx power", txPwr)
+	msg.TXPower = txPwr
 
 	comments, commentsSz := parseUTF8(b[offset:])
 	offset += commentsSz
-	fmt.Println("comments", comments)
+	msg.Comments = comments
 
 	name, nameSz := parseUTF8(b[offset:])
 	offset += nameSz
-	fmt.Println("name", name)
+	msg.Name = name
 
 	dateOn, err := decodeQDateTime(b[offset:])
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("Date on", dateOn.In(time.Local))
-	fmt.Println("Date off", dateOff.In(time.Local))
+	msg.QSOOn = dateOn
+	msg.QSOOff = dateOff
 	return msg, nil
 }
 
@@ -122,7 +124,7 @@ func decodeQDateTime(b []byte) (time.Time, error) {
 	tspec := b[offset]
 	offset += 1
 
-	julianDay -= 2440587
+	julianDay -= 2440588
 
 	var t time.Time
 	switch tspec {
