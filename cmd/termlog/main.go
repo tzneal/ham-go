@@ -75,17 +75,27 @@ func main() {
 
 	// go open the log
 	logDir := expandPath(cfg.Operator.Logdir)
+
+	// ensure the log directory exists
+	if !ham.FileOrDirectoryExists(logDir) {
+		os.MkdirAll(logDir, 0755)
+	}
+
 	var alog *adif.Log
 	if flag.NArg() > 0 {
 		alog, err = adif.ParseFile(flag.Arg(0))
+
 		if err != nil {
-			log.Fatalf("error reading ADIF file %s", flag.Arg(0))
+			if os.IsNotExist(err) {
+				alog = adif.NewLog()
+				alog.Filename = flag.Arg(0)
+				alog.Save()
+
+			} else {
+				log.Fatalf("error reading ADIF file %s", flag.Arg(0))
+			}
 		}
 	} else {
-		// ensure the log directory exists
-		if !ham.FileOrDirectoryExists(logDir) {
-			os.MkdirAll(logDir, 0755)
-		}
 		// try to open a default log for today
 		var fn string
 		if cfg.Operator.NewLogDaily {

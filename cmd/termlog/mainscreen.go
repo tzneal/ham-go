@@ -223,7 +223,7 @@ lfor:
 		case input.KeyEnter:
 			idx := bml.Selected()
 			if idx >= 0 && idx < len(m.bookmarks.Bookmark) {
-				m.qso.SetFrequency(m.bookmarks.Bookmark[idx].Frequency)
+				m.qso.SetFrequency(m.bookmarks.Bookmark[idx].Frequency * 1e6)
 			}
 			break lfor
 		case input.KeyDelete:
