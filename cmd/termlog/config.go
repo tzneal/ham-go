@@ -55,6 +55,7 @@ type Config struct {
 	Operator  Operator
 	Rig       Rig
 	WSJTX     WSJTX
+	FLLog     FLLog
 	Lookup    map[string]callsigns.LookupConfig
 	DXCluster DXCluster
 	Theme     ui.Theme
@@ -78,11 +79,18 @@ type WSJTX struct {
 	Address string
 }
 
+// FLLog controls FLDigi  logging
+type FLLog struct {
+	Enabled bool
+	Address string
+}
+
 // NewConfig constructs a new default configuration.
 func NewConfig() *Config {
 	cfg := &Config{}
 	cfg.Operator.Logdir = "~/termlog/"
 	cfg.WSJTX.Address = "127.0.0.1:2237"
+	cfg.FLLog.Address = "127.0.0.1:8421"
 
 	cfg.Theme.StatusBg = 40 // light blue
 	cfg.Theme.StatusFg = 1

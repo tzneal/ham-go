@@ -17,6 +17,7 @@ import (
 	"github.com/tzneal/ham-go/cmd/termlog/input"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 	"github.com/tzneal/ham-go/dxcluster"
+	"github.com/tzneal/ham-go/fldigi"
 	"github.com/tzneal/ham-go/wsjtx"
 )
 
@@ -29,6 +30,7 @@ type mainScreen struct {
 	repo       *git.Repository
 	cfg        *Config
 	wsjtxLog   *wsjtx.Server
+	fldigiLog  *fldigi.Server
 
 	editingQSO bool // are we editing a QSO, or creating a new one?
 }
@@ -155,6 +157,14 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		if err == nil {
 			ms.wsjtxLog = wsjtxLog
 			ms.wsjtxLog.Run()
+		}
+	}
+
+	if cfg.FLLog.Enabled {
+		fldigiLog, err := fldigi.NewServer(cfg.FLLog.Address)
+		if err == nil {
+			ms.fldigiLog = fldigiLog
+			ms.fldigiLog.Run()
 		}
 	}
 
@@ -307,6 +317,20 @@ func (m *mainScreen) Tick() bool {
 				// TODO: log the error?
 			}
 		default:
+		}
+	}
+	if m.cfg.FLLog.Enabled {
+		select {
+		case rec := <-m.fldigiLog.Messages:
+			rdr := strings.NewReader("<eoh>\n" + rec)
+			alog, err := adif.Parse(rdr)
+			if err == nil && len(alog.Records) == 1 {
+				m.alog.Records = append(m.alog.Records, alog.Records[0])
+				m.alog.Save()
+			}
+
+		default:
+
 		}
 	}
 	if !m.controller.HandleEvent(input.ReadKeyEvent()) {
