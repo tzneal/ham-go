@@ -102,7 +102,7 @@ func (d *DXClusterList) HandleEvent(key input.Key) {
 	case input.KeyEnter:
 		if d.selected >= 0 && d.selected < len(d.spots) {
 			if d.onTune != nil {
-				d.onTune(d.spots[len(d.spots)-d.selected-1].Frequency)
+				d.onTune(d.spots[len(d.spots)-d.selected-1].Frequency / 1e3)
 			}
 		}
 	case input.KeyArrowUp:

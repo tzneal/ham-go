@@ -12,6 +12,7 @@ features I need/want.
 - Can auto-commit log files to a git repository
 - DX Cluster Monitor
 - Controls radio through hamlib (github.com/dh1tw/goHamlib)
+- Logs for both WSJT-X and fldigi
 
 ## Installation
 

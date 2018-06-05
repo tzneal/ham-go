@@ -73,7 +73,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		dxlist := ui.NewDXClusterList(yPos, dxclient, 8, cfg.Theme)
 		if rig != nil {
 			dxlist.OnTune(func(f float64) {
-				f = f / 1e3
+				f = f * 1e6
 				rig.SetFreq(goHamlib.VFOCurrent, f)
 			})
 		}
