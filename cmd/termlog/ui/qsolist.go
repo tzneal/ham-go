@@ -30,7 +30,7 @@ func NewQSOList(yPos int, log *adif.Log, maxLines int, theme Theme) *QSOList {
 	ql := &QSOList{
 		yPos:     yPos,
 		log:      log,
-		maxLines: maxLines,
+		maxLines: maxLines - 2,
 		theme:    theme,
 	}
 	return ql

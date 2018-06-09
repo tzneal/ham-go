@@ -39,7 +39,7 @@ func (s *StatusBar) Redraw() {
 	yPos := s.yPos
 	if yPos < 0 {
 		_, h := termbox.Size()
-		yPos = h - yPos - 2
+		yPos = h + yPos
 	}
 	for _, item := range s.items {
 		switch {

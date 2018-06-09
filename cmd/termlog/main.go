@@ -175,7 +175,7 @@ func main() {
 		}
 	}
 
-	mainScreen := newMainScreen(cfg, alog, logRepo, bookmarks, rig)
+	mainScreen := newMainScreen(cfg, alog, logRepo, bookmarks, rig, d)
 	for mainScreen.Tick() {
 
 	}

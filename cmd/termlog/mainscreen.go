@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dh1tw/goHamlib"
+	humanize "github.com/dustin/go-humanize"
 	termbox "github.com/nsf/termbox-go"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -16,6 +17,7 @@ import (
 	"github.com/tzneal/ham-go/callsigns"
 	"github.com/tzneal/ham-go/cmd/termlog/input"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
+	"github.com/tzneal/ham-go/db"
 	"github.com/tzneal/ham-go/dxcluster"
 	"github.com/tzneal/ham-go/fldigi"
 	"github.com/tzneal/ham-go/wsjtx"
@@ -32,13 +34,16 @@ type mainScreen struct {
 	wsjtxLog   *wsjtx.Server
 	fldigiLog  *fldigi.Server
 	rig        *goHamlib.Rig
-
+	d          *db.Database
 	editingQSO bool // are we editing a QSO, or creating a new one?
 }
 
-func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks *ham.Bookmarks, rig *goHamlib.Rig) *mainScreen {
+func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks *ham.Bookmarks, rig *goHamlib.Rig,
+	d *db.Database) *mainScreen {
 	c := ui.NewController(cfg.Theme)
 	c.RefreshEvery(250 * time.Millisecond)
+
+	_, remainingHeight := termbox.Size()
 
 	// status bar
 	yPos := 0
@@ -49,17 +54,28 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	sb.AddClock("UTC")
 	c.AddWidget(sb)
 	yPos++
+	remainingHeight--
 
 	lookup := callsigns.BuildLookup(cfg.Lookup)
 	qso := ui.NewQSO(yPos, c.Theme(), lookup, rig)
 	c.AddWidget(qso)
 	yPos += qso.Height()
+	remainingHeight -= qso.Height()
 
-	qsoList := ui.NewQSOList(yPos, alog, 10, cfg.Theme)
+	// default to a size
+	qsoHeight := 12
+	// but fill the screen if the dxcluster is disbled
+	if !cfg.DXCluster.Enabled {
+		qsoHeight = remainingHeight - 1
+	}
+
+	qsoList := ui.NewQSOList(yPos, alog, qsoHeight, cfg.Theme)
 	qso.SetOperatorGrid(cfg.Operator.Grid)
 	qsoList.SetOperatorGrid(cfg.Operator.Grid)
 	c.AddWidget(qsoList)
-	yPos += 12
+	yPos += qsoHeight
+
+	remainingHeight -= qsoHeight
 
 	// is the DX Cluster monitoring enabled?
 	if cfg.DXCluster.Enabled {
@@ -71,7 +87,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		}
 		dxclient := dxcluster.NewClient(dcfg)
 		dxclient.Run()
-		dxlist := ui.NewDXClusterList(yPos, dxclient, 8, cfg.Theme)
+		dxlist := ui.NewDXClusterList(yPos, dxclient, remainingHeight-2, cfg.Theme)
 		if rig != nil {
 			dxlist.OnTune(func(f float64) {
 				f = f * 1e6
@@ -86,10 +102,26 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		}
 		c.AddWidget(dxlist)
 
-	} else {
-		// not enabled so enlarge the QSO List
-		qsoList.SetMaxLines(17)
 	}
+
+	lastSeen := ui.NewStatusBar(-2)
+	lastSeen.AddFunction(func() string {
+		call := qso.Call()
+		if call == "" {
+			return ""
+		}
+		res, _ := d.Search(call)
+		switch len(res) {
+		case 0:
+			return fmt.Sprintf("Have never seen %s", call)
+		case 1:
+			return fmt.Sprintf("Seen once at %s (%s)", adif.UTCTimestamp(res[0].Date), humanize.RelTime(res[0].Date, time.Now(), "ago", ""))
+		default:
+			last := res[len(res)-1].Date
+			return fmt.Sprintf("Seen %d times, first %s last %s (%s)", len(res), adif.UTCTimestamp(res[0].Date), adif.UTCTimestamp(last), humanize.RelTime(last, time.Now(), "ago", ""))
+		}
+	}, 80)
+	c.AddWidget(lastSeen)
 
 	fb := ui.NewStatusBar(-1)
 	if rig != nil {
@@ -118,8 +150,6 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 			}
 			return ""
 		}, 5)
-
-		c.AddWidget(fb)
 	}
 
 	fb.AddFunction(func() string {
@@ -151,6 +181,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		rig:        rig,
 		bookmarks:  bookmarks,
 		editingQSO: false,
+		d:          d,
 	}
 
 	qsoList.OnSelect(func(r adif.Record) {
