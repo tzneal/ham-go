@@ -14,6 +14,7 @@ features I need/want.
 - Controls radio through hamlib (github.com/dh1tw/goHamlib)
 - Logs for both WSJT-X and fldigi
 
+
 ## Installation
 
 ```
@@ -28,17 +29,19 @@ go install github.com/tzneal/ham-go/cmd/termlog
 
 # Commands
     
-| Shortcut | Command |
-|----------|---------|
-| Ctrl+Q   | Quit termlog |
-| Ctrl+H   | Display Help |
-| Ctrl+N   | Start a new QSO (clearing the current one if not saved) |
-| Ctrl+D   | Set the QSO time on to the current time |
-| Ctrl+S   | Save the QSO to the log and start a new one |
-| Ctrl+G   | Commit the current logfile to git |
-| Ctrl+B   | Save a bookmark |
-| Alt+B    | Open the bookmark list |
-
+| Shortcut  | Command |
+|-----------|---------|
+| Ctrl+Q    | Quit termlog |
+| Ctrl+H    | Display Help |
+| Ctrl+N    | Start a new QSO (clearing the current one if not saved) |
+| Ctrl+D    | Set the QSO time on to the current time |
+| Ctrl+S    | Save the QSO to the log and start a new one |
+| Ctrl+G    | Commit the current logfile to git |
+| Ctrl+B    | Save a bookmark |
+| Alt+B     | Open the bookmark list |
+| Ctrl+L    | Focus the QSO List |
+| Alt+Left  | Tune down 500khz |
+| Alt+Right | Tune up 500khz |
 
 ## adif
 
