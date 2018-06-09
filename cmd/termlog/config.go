@@ -10,16 +10,17 @@ import (
 
 // Operator is configuration info about the person operating the station.
 type Operator struct {
-	Name        string
-	Email       string
-	Call        string
-	Grid        string
-	City        string
-	County      string
-	State       string
-	Country     string
-	Logdir      string // directory to store logs
-	NewLogDaily bool
+	Name               string
+	Email              string
+	Call               string
+	Grid               string
+	City               string
+	County             string
+	State              string
+	Country            string
+	Logdir             string // directory to store logs
+	DateBasedLogging   bool
+	DateBasedLogFormat string
 }
 
 // Rig is the radio that may be controlled
@@ -89,6 +90,7 @@ type FLLog struct {
 func NewConfig() *Config {
 	cfg := &Config{}
 	cfg.Operator.Logdir = "~/termlog/"
+	cfg.Operator.DateBasedLogFormat = "Jan_2006"
 	cfg.WSJTX.Address = "127.0.0.1:2237"
 	cfg.FLLog.Address = "127.0.0.1:8421"
 

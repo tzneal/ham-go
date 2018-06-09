@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/dh1tw/goHamlib"
@@ -134,8 +135,8 @@ func main() {
 	} else {
 		// try to open a default log for today
 		var fn string
-		if cfg.Operator.NewLogDaily {
-			fn = fmt.Sprintf(expandPath("%s/%s.adif"), logDir, adif.NowUTCDate())
+		if cfg.Operator.DateBasedLogging {
+			fn = fmt.Sprintf(expandPath("%s/%s.adif"), logDir, time.Now().Format(cfg.Operator.DateBasedLogFormat))
 		} else {
 			fn = fmt.Sprintf(expandPath("%s/termlog.adif"), logDir)
 		}
