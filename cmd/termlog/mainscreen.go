@@ -76,6 +76,12 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 			dxlist.OnTune(func(f float64) {
 				f = f * 1e6
 				rig.SetFreq(goHamlib.VFOCurrent, f)
+				// ensure we are in the proper mode
+				if f < 10000000 {
+					rig.SetMode(goHamlib.VFOCurrent, goHamlib.ModeLSB, 0)
+				} else {
+					rig.SetMode(goHamlib.VFOCurrent, goHamlib.ModeUSB, 0)
+				}
 			})
 		}
 		c.AddWidget(dxlist)
