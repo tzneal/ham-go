@@ -456,6 +456,7 @@ func (q *QSO) SetRecord(r adif.Record) {
 		q.freqLabel.SetText(r.Get(adif.Frequency))
 	}
 	q.mode.SetSelected(r.Get(adif.AMode))
+	q.band.SetSelected(r.Get(adif.ABand))
 	q.name.SetValue(r.Get(adif.Name))
 	q.rrst.SetValue(r.Get(adif.RSTReceived))
 	q.srst.SetValue(r.Get(adif.RSTSent))
