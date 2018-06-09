@@ -77,6 +77,20 @@ func (d *Database) Search(call string) (Results, error) {
 	return res, err
 }
 
+func AdifToRecord(rec adif.Record) (Record, error) {
+	timeOn := rec.Get(adif.QSODateStart) + " " + rec.Get(adif.TimeOn)
+	t, err := time.Parse("20060102 1504", timeOn)
+	if err != nil {
+		return Record{}, err
+	}
+
+	return Record{
+		Call:      rec.Get(adif.Call),
+		Frequency: rec.GetFloat(adif.Frequency),
+		Mode:      rec.Get(adif.AMode),
+		Date:      t,
+	}, nil
+}
 func (d *Database) IndexAdif(filename string) (int, error) {
 	adi, err := adif.ParseFile(filename)
 	if err != nil {
@@ -84,19 +98,12 @@ func (d *Database) IndexAdif(filename string) (int, error) {
 	}
 	n := 0
 	for _, rec := range adi.Records {
-		timeOn := rec.Get(adif.QSODateStart) + " " + rec.Get(adif.TimeOn)
-		t, err := time.Parse("20060102 1504", timeOn)
+		r, err := AdifToRecord(rec)
 		if err != nil {
 			log.Printf("error parsing time: %s", err)
 			continue
 		}
-		record := Record{
-			Call:      rec.Get(adif.Call),
-			Frequency: rec.GetFloat(adif.Frequency),
-			Mode:      rec.Get(adif.AMode),
-			Date:      t,
-		}
-		if err := d.AddRecord(record); err == nil {
+		if err := d.AddRecord(r); err == nil {
 			n++
 		} else {
 			log.Printf("index record error: %s", err)
