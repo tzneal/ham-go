@@ -31,6 +31,7 @@ type mainScreen struct {
 	cfg        *Config
 	wsjtxLog   *wsjtx.Server
 	fldigiLog  *fldigi.Server
+	rig        *goHamlib.Rig
 
 	editingQSO bool // are we editing a QSO, or creating a new one?
 }
@@ -141,6 +142,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		alog:       alog,
 		repo:       repo,
 		cfg:        cfg,
+		rig:        rig,
 		bookmarks:  bookmarks,
 		editingQSO: false,
 	}
@@ -178,9 +180,25 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	c.AddCommand(input.KeyCtrlG, ms.commitLog)
 	c.AddCommand(input.KeyCtrlR, ms.redrawAll)
 
+	c.AddCommand(input.KeyAltLeft, ms.tuneLeft)
+	c.AddCommand(input.KeyAltRight, ms.tuneRight)
 	return ms
 }
 
+func (m *mainScreen) tuneLeft() {
+	freq, err := m.rig.GetFreq(goHamlib.VFOCurrent)
+	if err == nil {
+		freq -= 500
+		m.rig.SetFreq(goHamlib.VFOCurrent, freq)
+	}
+}
+func (m *mainScreen) tuneRight() {
+	freq, err := m.rig.GetFreq(goHamlib.VFOCurrent)
+	if err == nil {
+		freq += 500
+		m.rig.SetFreq(goHamlib.VFOCurrent, freq)
+	}
+}
 
 func (m *mainScreen) redrawAll() {
 	w, h := termbox.Size()

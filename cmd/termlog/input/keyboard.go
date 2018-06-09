@@ -53,6 +53,8 @@ const (
 	KeyArrowRight
 	KeyAltEnter
 	KeyAltB
+	KeyAltRight
+	KeyAltLeft
 	keyLastKey
 )
 
@@ -77,6 +79,8 @@ func ParseKeyEvent(d []byte) Key {
 		return parse3(d[0:3])
 	case 4:
 		return parse4(d[0:4])
+	case 6:
+		return parse6(d[0:6])
 	}
 	return KeyUnknown
 }
@@ -93,6 +97,8 @@ func ReadKeyEvent() Key {
 		return parse3(d[0:3])
 	case 4:
 		return parse4(d[0:4])
+	case 6:
+		return parse6(d[0:6])
 	}
 	return KeyUnknown
 }
@@ -157,6 +163,35 @@ func parse4(d []byte) Key {
 				switch d[3] {
 				case 0x7E:
 					return KeyDelete
+				}
+			}
+		}
+	}
+	return KeyUnknown
+}
+
+func parse6(d []byte) Key {
+	if len(d) != 6 {
+		log.Println("expected a six byte event, got", d)
+		return KeyUnknown
+	}
+	switch d[0] {
+	case 0x1b: // escape
+		switch d[1] {
+		case 0x5b:
+			switch d[2] {
+			case 0x31:
+				switch d[3] {
+				case 0x3b:
+					switch d[4] {
+					case 0x33:
+						switch d[5] {
+						case 0x43:
+							return KeyAltRight
+						case 0x44:
+							return KeyAltLeft
+						}
+					}
 				}
 			}
 		}

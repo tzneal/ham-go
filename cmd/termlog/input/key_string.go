@@ -7,13 +7,13 @@ import "fmt"
 const (
 	_Key_name_0 = "KeyCtrlAKeyCtrlBKeyCtrlCKeyCtrlDKeyCtrlEKeyCtrlFKeyCtrlGKeyBackspaceKeyTabKeyCtrlJKeyCtrlKKeyCtrlLKeyEnterKeyCtrlNKeyCtrlOKeyCtrlPKeyCtrlQKeyCtrlRKeyCtrlSKeyCtrlTKeyCtrlUKeyCtrlVKeyCtrlWKeyCtrlXKeyCtrlYKeyCtrlZKeyEscape"
 	_Key_name_1 = "KeyBackspace2"
-	_Key_name_2 = "KeyUnknownKeyShiftTabKeyDeleteKeyArrowUpKeyArrowDownKeyArrowLeftKeyArrowRightKeyAltEnterKeyAltBkeyLastKey"
+	_Key_name_2 = "KeyUnknownKeyShiftTabKeyDeleteKeyArrowUpKeyArrowDownKeyArrowLeftKeyArrowRightKeyAltEnterKeyAltBKeyAltRightKeyAltLeftkeyLastKey"
 )
 
 var (
 	_Key_index_0 = [...]uint8{0, 8, 16, 24, 32, 40, 48, 56, 68, 74, 82, 90, 98, 106, 114, 122, 130, 138, 146, 154, 162, 170, 178, 186, 194, 202, 210, 219}
 	_Key_index_1 = [...]uint8{0, 13}
-	_Key_index_2 = [...]uint8{0, 10, 21, 30, 40, 52, 64, 77, 88, 95, 105}
+	_Key_index_2 = [...]uint8{0, 10, 21, 30, 40, 52, 64, 77, 88, 95, 106, 116, 126}
 )
 
 func (i Key) String() string {
@@ -23,7 +23,7 @@ func (i Key) String() string {
 		return _Key_name_0[_Key_index_0[i]:_Key_index_0[i+1]]
 	case i == 127:
 		return _Key_name_1
-	case 287 <= i && i <= 296:
+	case 287 <= i && i <= 298:
 		i -= 287
 		return _Key_name_2[_Key_index_2[i]:_Key_index_2[i+1]]
 	default:
