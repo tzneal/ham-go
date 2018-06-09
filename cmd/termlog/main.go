@@ -20,6 +20,7 @@ import (
 func main() {
 	colorTest := flag.Bool("color-test", false, "display a color test")
 	hamlibList := flag.Bool("hamlib-list", false, "list the supported libhamlib devices")
+	noRig := flag.Bool("no-rig", false, "disable rig control, even if enabled in the config file")
 	keyTest := flag.Bool("key-test", false, "list keyboard events")
 	upgradeConfig := flag.Bool("upgrade-config", false, "upgrade the configuration file to the latest format")
 	config := flag.String("config", "~/.termlog.toml", "path to the configuration file")
@@ -64,7 +65,7 @@ func main() {
 
 	// are we connected to a radio?
 	var rig *goHamlib.Rig
-	if cfg.Rig.Enabled {
+	if cfg.Rig.Enabled && !*noRig {
 		goHamlib.SetDebugLevel(goHamlib.DebugErr)
 		rig, err = newRig(cfg.Rig)
 		if rig == nil || err != nil {
