@@ -176,8 +176,17 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	c.AddCommand(input.KeyAltB, ms.listBookmarks)
 	c.AddCommand(input.KeyCtrlB, ms.saveBookmark)
 	c.AddCommand(input.KeyCtrlG, ms.commitLog)
+	c.AddCommand(input.KeyCtrlR, ms.redrawAll)
 
 	return ms
+}
+
+
+func (m *mainScreen) redrawAll() {
+	w, h := termbox.Size()
+	ui.Clear(0, 0, w, h, termbox.ColorDefault, termbox.ColorDefault)
+	termbox.Flush()
+	m.Tick()
 }
 
 func (m *mainScreen) commitLog() {
