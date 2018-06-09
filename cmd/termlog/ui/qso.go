@@ -243,6 +243,10 @@ func (q *QSO) SetDefaults() {
 				q.mode.SetSelected("SSB")
 			case goHamlib.ModeCW:
 				q.mode.SetSelected("CW")
+			case goHamlib.ModeFM, goHamlib.ModeFMN:
+				q.mode.SetSelected("FM")
+			case goHamlib.ModeAM:
+				q.mode.SetSelected("AM")
 			default:
 				q.mode.SetSelected("")
 			}
