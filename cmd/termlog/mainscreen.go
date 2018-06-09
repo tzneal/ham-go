@@ -337,15 +337,20 @@ func (m *mainScreen) focusQSOList() {
 }
 func (m *mainScreen) saveQSO() {
 	if m.qso.IsValid() || ui.YesNoQuestion("Missing callsign or frequency, save anyway?") {
+		rec := m.qso.GetRecord()
 		if m.editingQSO {
 			idx := m.qsoList.SelectedIndex()
-			m.alog.Records[idx] = m.qso.GetRecord()
+			m.alog.Records[idx] = rec
 			m.alog.Save()
 		} else {
-			m.alog.Records = append(m.alog.Records, m.qso.GetRecord())
+			m.alog.Records = append(m.alog.Records, rec)
 			m.alog.Save()
 			m.qso.SetDefaults()
 			m.controller.Focus(m.qso)
+		}
+		r, err := db.AdifToRecord(rec)
+		if err != nil {
+			m.d.AddRecord(r)
 		}
 	}
 }
