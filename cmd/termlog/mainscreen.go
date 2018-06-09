@@ -349,7 +349,7 @@ func (m *mainScreen) saveQSO() {
 			m.controller.Focus(m.qso)
 		}
 		r, err := db.AdifToRecord(rec)
-		if err != nil {
+		if err == nil {
 			m.d.AddRecord(r)
 		}
 	}
