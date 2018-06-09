@@ -51,6 +51,11 @@ ADIF parsing and writing
 
 Callsign lookup interface with a couple of supported backends.
 
+## db
+
+ADIF indexer used to quickly identify when you last saw a contact and how many
+times you've logged him.
+
 ## dxcc
 
 Callsign lookup via prefixes/exceptions through the data at
@@ -59,3 +64,11 @@ www.country-files.com (works offline).
 ## dxcluster
 
 The beginnings of a DXCluster client.
+
+## fldigi
+
+Enough code to parse the realtime fldigi emitted logs and save them to termlog.
+
+## wsjtx
+
+Enough code to parse the realtime WSJT-X emitted logs and save them to termlog.
