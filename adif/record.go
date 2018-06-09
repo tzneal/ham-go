@@ -30,9 +30,14 @@ func (r Record) Get(id Identifier) string {
 	return ""
 }
 
+func (r Record) GetInt(id Identifier) int64 {
+	val, _ := strconv.ParseInt(r.Get(id), 10, 64)
+	return val
+}
+
 func (r Record) GetFloat(id Identifier) float64 {
-	freq64, _ := strconv.ParseFloat(r.Get(id), 64)
-	return freq64
+	val, _ := strconv.ParseFloat(r.Get(id), 64)
+	return val
 }
 
 func (r Record) IsValid() bool {

@@ -1,6 +1,7 @@
 package dxcc
 
 import (
+	"errors"
 	"sort"
 	"strconv"
 	"strings"
@@ -133,4 +134,22 @@ func applyOverrides(pfx string, ent *Entity) {
 		}
 		i++
 	}
+}
+
+func LookupEntity(name string) (Entity, error) {
+	for _, v := range Entities {
+		if v.Entity == name {
+			return v, nil
+		}
+	}
+	return Entity{}, errors.New("entity not found")
+}
+
+func LookupEntityCode(code int64) (Entity, error) {
+	for _, v := range Entities {
+		if int64(v.DXCC) == code {
+			return v, nil
+		}
+	}
+	return Entity{}, errors.New("entity not found")
 }

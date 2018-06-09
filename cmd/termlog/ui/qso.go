@@ -424,11 +424,14 @@ func (q *QSO) GetRecord() adif.Record {
 			Value: q.stx.Value(),
 		})
 
-	record = append(record,
-		adif.Field{
-			Name:  adif.DXCC,
-			Value: q.entity.Value(),
-		})
+	ent, err := dxcc.LookupEntity(q.entity.Value())
+	if err == nil {
+		record = append(record,
+			adif.Field{
+				Name:  adif.DXCC,
+				Value: strconv.FormatInt(int64(ent.DXCC), 10),
+			})
+	}
 
 	record = append(record,
 		adif.Field{
@@ -467,7 +470,10 @@ func (q *QSO) SetRecord(r adif.Record) {
 	q.srx.SetValue(r.Get(adif.SRX_String))
 	q.stx.SetValue(r.Get(adif.STXString))
 	q.grid.SetValue(r.Get(adif.GridSquare))
-	q.entity.SetSelected(r.Get(adif.DXCC))
+	ent, err := dxcc.LookupEntityCode(r.GetInt(adif.DXCC))
+	if err == nil {
+		q.entity.SetSelected(ent.Entity)
+	}
 	q.time.SetValue(r.Get(adif.TimeOn))
 	q.date.SetValue(r.Get(adif.QSODateStart))
 	q.notes.SetValue(r.Get(adif.Notes))
