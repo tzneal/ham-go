@@ -3,6 +3,7 @@ package adif
 import (
 	"fmt"
 	"io"
+	"strconv"
 )
 
 type Record []Field
@@ -27,6 +28,11 @@ func (r Record) Get(id Identifier) string {
 		}
 	}
 	return ""
+}
+
+func (r Record) GetFloat(id Identifier) float64 {
+	freq64, _ := strconv.ParseFloat(r.Get(id), 64)
+	return freq64
 }
 
 func (r Record) IsValid() bool {

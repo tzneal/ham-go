@@ -8,17 +8,21 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/BurntSushi/toml"
 	"github.com/dh1tw/goHamlib"
 	ham "github.com/tzneal/ham-go"
 	"github.com/tzneal/ham-go/adif"
 	_ "github.com/tzneal/ham-go/callsigns/providers" // to register providers
+	"github.com/tzneal/ham-go/db"
 	git "gopkg.in/src-d/go-git.v4"
 )
 
 func main() {
 	colorTest := flag.Bool("color-test", false, "display a color test")
+	indexAdifs := flag.Bool("index", false, "index the ADIF files passed in on the command line")
+	search := flag.String("search", "", "search the indexed ADIF files and print the results")
 	hamlibList := flag.Bool("hamlib-list", false, "list the supported libhamlib devices")
 	noRig := flag.Bool("no-rig", false, "disable rig control, even if enabled in the config file")
 	keyTest := flag.Bool("key-test", false, "list keyboard events")
@@ -60,6 +64,37 @@ func main() {
 			log.Fatalf("unable to upgrade config file %s: %s", *config, err)
 		}
 		fmt.Println("config file upgraded")
+		return
+	}
+
+	d, err := db.Open(filepath.Join(expandPath(cfg.Operator.Logdir), "indexed.db"))
+	if err != nil {
+		log.Fatalf("error opening/creating indexed logs: %s", err)
+	}
+	if *indexAdifs {
+		for _, fn := range flag.Args() {
+			n, err := d.IndexAdif(fn)
+			if err != nil {
+				log.Printf("indexing %s failed: %s", fn, err)
+			} else {
+				log.Println("indexed", fn, "found", n, "records")
+			}
+		}
+		return
+	}
+
+	if *search != "" {
+		results, err := d.Search(db.NormalizeCall(*search))
+		if err != nil {
+			log.Printf("error searching: %s", err)
+		} else {
+			tw := tabwriter.NewWriter(os.Stdout, 8, 8, 1, ' ', 0)
+			defer tw.Flush()
+			fmt.Fprintf(tw, "Call\tDate\tFreq\tMode\n")
+			for _, r := range results {
+				fmt.Fprintf(tw, "%s\t%s\t%g\t%s\n", r.Call, adif.UTCTimestamp(r.Date), r.Frequency, r.Mode)
+			}
+		}
 		return
 	}
 

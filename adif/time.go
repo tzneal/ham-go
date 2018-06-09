@@ -24,6 +24,9 @@ func NowUTCTime() string {
 
 // NowUTCTimestamp returns the current date/time in ADIF UTC format
 func NowUTCTimestamp() string {
-	t := time.Now().In(time.UTC)
-	return t.Format("20060102 15:04")
+	return UTCTimestamp(time.Now())
+}
+
+func UTCTimestamp(t time.Time) string {
+	return t.In(time.UTC).Format("20060102 15:04")
 }

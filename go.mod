@@ -2,6 +2,7 @@ module "github.com/tzneal/ham-go"
 
 require (
 	"github.com/BurntSushi/toml" v0.3.0
+	"github.com/coreos/bbolt" v1.3.1-coreos.6
 	"github.com/dh1tw/goHamlib" v0.0.0-20180528225453-0b948dc0e5c6
 	"github.com/emirpasic/gods" v1.9.0
 	"github.com/jacobsa/go-serial" v0.0.0-20180131005756-15cf729a72d4
