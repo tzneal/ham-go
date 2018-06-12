@@ -103,6 +103,11 @@ func (q *QSOList) Redraw() {
 			field: adif.Distance,
 			width: 12,
 		},
+		{
+			label: "Notes",
+			field: adif.Notes,
+			width: 40,
+		},
 	}
 
 	hdrFg := q.theme.QSOListHeaderFG
