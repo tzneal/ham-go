@@ -41,6 +41,7 @@ func main() {
 	}
 
 	if *hamlibList {
+		goHamlib.SetDebugLevel(goHamlib.DebugErr)
 		for _, mdl := range goHamlib.ListModels() {
 			fmt.Println(" -", mdl.Manufacturer, mdl.Model)
 		}
