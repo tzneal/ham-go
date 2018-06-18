@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/tzneal/ham-go/cmd/termlog/input"
+	"github.com/tzneal/ham-go/rig"
 
 	"github.com/dh1tw/goHamlib"
 	maidenhead "github.com/pd0mz/go-maidenhead"
@@ -40,11 +41,11 @@ type QSO struct {
 	entity           *ComboBox
 	operatorLocation *maidenhead.Point
 
-	rig *goHamlib.Rig
+	rig *rig.RigCache
 }
 
 // NewQSO constructs a new QSO editor
-func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *goHamlib.Rig) *QSO {
+func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *rig.RigCache) *QSO {
 	// call sign
 	pc := NewPanelController(theme)
 	x := 0

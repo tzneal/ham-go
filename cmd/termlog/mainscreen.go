@@ -20,6 +20,7 @@ import (
 	"github.com/tzneal/ham-go/db"
 	"github.com/tzneal/ham-go/dxcluster"
 	"github.com/tzneal/ham-go/fldigi"
+	"github.com/tzneal/ham-go/rig"
 	"github.com/tzneal/ham-go/wsjtx"
 )
 
@@ -33,12 +34,12 @@ type mainScreen struct {
 	cfg        *Config
 	wsjtxLog   *wsjtx.Server
 	fldigiLog  *fldigi.Server
-	rig        *goHamlib.Rig
+	rig        *rig.RigCache
 	d          *db.Database
 	editingQSO bool // are we editing a QSO, or creating a new one?
 }
 
-func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks *ham.Bookmarks, rig *goHamlib.Rig,
+func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks *ham.Bookmarks, rig *rig.RigCache,
 	d *db.Database) *mainScreen {
 	c := ui.NewController(cfg.Theme)
 	c.RefreshEvery(250 * time.Millisecond)
@@ -125,24 +126,8 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 
 	fb := ui.NewStatusBar(-1)
 	if rig != nil {
-		fb.AddText(rig.Caps.MfgName)
-		fb.AddText(rig.Caps.ModelName)
-		fb.AddFunction(func() string {
-			lvl, err := rig.GetLevel(goHamlib.VFOCurrent, goHamlib.RIG_LEVEL_STRENGTH)
-			if err == nil {
-				return fmt.Sprintf("S %0.1f", lvl)
-			}
-			return ""
-		}, 7)
-
-		fb.AddFunction(func() string {
-			lvl, err := rig.GetLevel(goHamlib.VFOCurrent, goHamlib.RIG_LEVEL_RFPOWER)
-			if err == nil {
-				return fmt.Sprintf("P %0.1f", lvl)
-			}
-			return ""
-		}, 6)
-
+		fb.AddText(rig.Rig.Caps.MfgName)
+		fb.AddText(rig.Rig.Caps.ModelName)
 		fb.AddFunction(func() string {
 			mode, _, err := rig.GetMode(goHamlib.VFOCurrent)
 			if err == nil {

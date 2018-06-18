@@ -2,6 +2,7 @@ module "github.com/tzneal/ham-go"
 
 require (
 	"github.com/BurntSushi/toml" v0.3.0
+	"github.com/cgrates/ltcache" v0.0.0-20180309181753-72c7e248f205
 	"github.com/coreos/bbolt" v1.3.1-coreos.6
 	"github.com/dh1tw/goHamlib" v0.0.0-20180528225453-0b948dc0e5c6
 	"github.com/dustin/go-humanize" v0.0.0-20180421182945-02af3965c54e
@@ -10,6 +11,7 @@ require (
 	"github.com/jbenet/go-context" v0.0.0-20150711004518-d14ea06fba99
 	"github.com/kevinburke/ssh_config" v0.0.0-20180422193403-4fcc689beeab
 	"github.com/mattn/go-runewidth" v0.0.2
+	"github.com/mattn/go-shellwords" v1.0.3
 	"github.com/mitchellh/go-homedir" v0.0.0-20180523094522-3864e76763d9
 	"github.com/nsf/termbox-go" v0.0.0-20180509163535-21a4d435a862
 	"github.com/pd0mz/go-maidenhead" v0.0.0-20170221185439-faa09c24425e
@@ -18,6 +20,7 @@ require (
 	"github.com/pkg/term" v0.0.0-20180423043932-cda20d4ac917
 	"github.com/sergi/go-diff" v1.0.0
 	"github.com/src-d/gcfg" v1.3.0
+	"github.com/wunderlist/ttlcache" v0.0.0-20140611003616-fa8f18d5e019
 	"github.com/xanzy/ssh-agent" v0.0.0-20151215153451-ba9c9e33906f
 	"golang.org/x/crypto" v0.0.0-20180531191117-5ba7f6308246
 	"golang.org/x/net" v0.0.0-20180530234432-1e491301e022
