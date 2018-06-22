@@ -416,7 +416,7 @@ func (q *QSO) GetRecord() adif.Record {
 		})
 	record = append(record,
 		adif.Field{
-			Name:  adif.SRX_String,
+			Name:  adif.SRXString,
 			Value: q.srx.Value(),
 		})
 	record = append(record,
@@ -468,7 +468,7 @@ func (q *QSO) SetRecord(r adif.Record) {
 	q.name.SetValue(r.Get(adif.Name))
 	q.rrst.SetValue(r.Get(adif.RSTReceived))
 	q.srst.SetValue(r.Get(adif.RSTSent))
-	q.srx.SetValue(r.Get(adif.SRX_String))
+	q.srx.SetValue(r.Get(adif.SRXString))
 	q.stx.SetValue(r.Get(adif.STXString))
 	q.grid.SetValue(r.Get(adif.GridSquare))
 	ent, err := dxcc.LookupEntityCode(r.GetInt(adif.DXCC))

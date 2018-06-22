@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -19,6 +20,9 @@ type Log struct {
 	CategoryAssisted bool
 	CategoryOperator CategoryOperator
 	CategoryStation  CategoryStation
+	CategoryPower    CategoryPower
+	CategoryOverlay  CategoryOverlay
+	ClaimedScore     int
 	QSOS             []QSO
 	ExtraHeaders     map[string]string
 }
@@ -60,6 +64,26 @@ const (
 	CategoryStationSchool
 )
 
+type CategoryPower byte
+
+const (
+	CategoryPowerUnknown CategoryPower = iota
+	CategoryPowerHigh
+	CategoryPowerLow
+	CategoryPowerQRP
+)
+
+type CategoryOverlay byte
+
+const (
+	CategoryOverlayUnknown CategoryOverlay = iota
+	CategoryOverlayClassic
+	CategoryOverlayRookie
+	CategoryOverlayTBWires
+	CategoryOverlayNoviceTech
+	CategoryOverlayOver50
+)
+
 func (l *Log) WriteToFile(filename string) error {
 	f, err := os.Create(filename)
 	if err != nil {
@@ -87,6 +111,15 @@ func (l *Log) Write(w io.Writer) error {
 	case CategoryOperatorChecklog:
 		l.writeEntry(w, categoryOperator, "CHECKLOG")
 	}
+	switch l.CategoryPower {
+	case CategoryPowerUnknown:
+	case CategoryPowerHigh:
+		l.writeEntry(w, categoryPower, "HIGH")
+	case CategoryPowerLow:
+		l.writeEntry(w, categoryPower, "LOW")
+	case CategoryPowerQRP:
+		l.writeEntry(w, categoryPower, "QRP")
+	}
 	switch l.CategoryStation {
 	case CategoryStationUnknown:
 	case CategoryStationFixed:
@@ -109,6 +142,23 @@ func (l *Log) Write(w io.Writer) error {
 		l.writeEntry(w, categoryStation, "SCHOOL")
 	}
 
+	switch l.CategoryOverlay {
+	case CategoryOverlayUnknown:
+	case CategoryOverlayClassic:
+		l.writeEntry(w, categoryOverlay, "CLASSIC")
+	case CategoryOverlayRookie:
+		l.writeEntry(w, categoryOverlay, "ROOKIE")
+	case CategoryOverlayTBWires:
+		l.writeEntry(w, categoryOverlay, "TB-WIRES")
+	case CategoryOverlayNoviceTech:
+		l.writeEntry(w, categoryOverlay, "NOVICE-TECH")
+	case CategoryOverlayOver50:
+		l.writeEntry(w, categoryOverlay, "OVER-50")
+	}
+	if l.ClaimedScore != 0 {
+		l.writeEntry(w, claimedScore, strconv.Itoa(l.ClaimedScore))
+	}
+
 	l.writeEntry(w, createdBy, "termlog")
 	l.writeEntry(w, name, l.Name)
 	l.writeEntry(w, email, l.Email)
@@ -119,7 +169,7 @@ func (l *Log) Write(w io.Writer) error {
 	for _, qso := range l.QSOS {
 		fmt.Fprintf(w, "QSO: ")
 		fmt.Fprintf(w, "% 5s", qso.Frequency)
-		fmt.Fprintf(w, "% 3s ", qso.Mode)
+		fmt.Fprintf(w, "% 4s ", qso.Mode)
 		fmt.Fprintf(w, "% 10s ", qso.Timestamp.Format("2006-01-02"))
 		fmt.Fprintf(w, "% 5s ", qso.Timestamp.Format("1504"))
 		fmt.Fprintf(w, "% 12s ", qso.SentCall)
@@ -130,7 +180,7 @@ func (l *Log) Write(w io.Writer) error {
 		fmt.Fprintf(w, "% 6s ", qso.RcvdExchange)
 		fmt.Fprintln(w)
 	}
-	l.writeEntry(w, endOfLog, "")
+	fmt.Fprintln(w, endOfLog)
 	return nil
 }
 func (l *Log) writeEntry(w io.Writer, key, value string) {

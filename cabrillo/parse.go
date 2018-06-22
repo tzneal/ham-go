@@ -33,7 +33,10 @@ const (
 	contest          = "CONTEST"
 	categoryAssisted = "CATEGORY-ASSISTED"
 	categoryOperator = "CATEGORY-OPERATOR"
+	categoryPower    = "CATEGORY-POWER"
 	categoryStation  = "CATEGORY-STATION"
+	categoryOverlay  = "CATEGORY-OVERLAY"
+	claimedScore     = "CLAIMED-SCORE"
 	createdBy        = "CREATED-BY"
 )
 
@@ -95,6 +98,17 @@ func parse(r io.Reader) (*Log, error) {
 			default:
 				return nil, fmt.Errorf("unsupported category operator %s on line %d", value, lineNo)
 			}
+		case categoryPower:
+			switch value {
+			case "HIGH":
+				lg.CategoryPower = CategoryPowerHigh
+			case "LOW":
+				lg.CategoryPower = CategoryPowerLow
+			case "QRP":
+				lg.CategoryPower = CategoryPowerQRP
+			default:
+				return nil, fmt.Errorf("unsupported category power %s on line %d", value, lineNo)
+			}
 		case categoryStation:
 			switch value {
 			case "FIXED":
@@ -115,6 +129,19 @@ func parse(r io.Reader) (*Log, error) {
 				lg.CategoryStation = CategoryStationHQ
 			case "SCHOOL":
 				lg.CategoryStation = CategoryStationSchool
+			}
+		case categoryOverlay:
+			switch value {
+			case "CLASSIC":
+				lg.CategoryOverlay = CategoryOverlayClassic
+			case "ROOKIE":
+				lg.CategoryOverlay = CategoryOverlayRookie
+			case "TB-WIRES":
+				lg.CategoryOverlay = CategoryOverlayTBWires
+			case "NOVICE-TECH":
+				lg.CategoryOverlay = CategoryOverlayNoviceTech
+			case "OVER-50":
+				lg.CategoryOverlay = CategoryOverlayOver50
 			}
 		default:
 			lg.ExtraHeaders[hdr] = value

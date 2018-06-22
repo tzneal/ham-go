@@ -14,6 +14,7 @@ import (
 
 	ham "github.com/tzneal/ham-go"
 	"github.com/tzneal/ham-go/adif"
+	"github.com/tzneal/ham-go/cabrillo"
 	"github.com/tzneal/ham-go/callsigns"
 	"github.com/tzneal/ham-go/cmd/termlog/input"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
@@ -201,12 +202,124 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	c.AddCommand(input.KeyCtrlB, ms.saveBookmark)
 	c.AddCommand(input.KeyCtrlG, ms.commitLog)
 	c.AddCommand(input.KeyCtrlR, ms.redrawAll)
+	c.AddCommand(input.KeyCtrlX, ms.exportCabrillo)
 
 	c.AddCommand(input.KeyAltLeft, ms.tuneLeft)
 	c.AddCommand(input.KeyAltRight, ms.tuneRight)
 	return ms
 }
 
+func (m *mainScreen) exportCabrillo() {
+	exportFilename, ok := ui.InputString(m.controller, "Enter Export Filename")
+	if !ok {
+		return
+	}
+	cl := cabrillo.Log{}
+	cl.Name = m.cfg.Operator.Name
+	cl.Email = m.cfg.Operator.Email
+	cl.Callsign = m.cfg.Operator.Call
+	cl.CategoryAssisted, ok = ui.InputBool(m.controller, "Assisted")
+	if !ok {
+		return
+	}
+
+	cl.Contest, ok = ui.InputString(m.controller, "Contest")
+	if !ok {
+		return
+	}
+	co, ok := ui.InputChoice(m.controller, "Operator", []string{"SINGLE-OP", "MULTI-OP", "CHECKLOG"})
+	switch co {
+	case "SINGLE-OP":
+		cl.CategoryOperator = cabrillo.CategoryOperatorSingle
+	case "MULTI-OP":
+		cl.CategoryOperator = cabrillo.CategoryOperatorMulti
+	default:
+		cl.CategoryOperator = cabrillo.CategoryOperatorChecklog
+	}
+	if !ok {
+		return
+	}
+
+	co, ok = ui.InputChoice(m.controller, "Power", []string{"HIGH", "LOW", "QRP"})
+	switch co {
+	case "HIGH":
+		cl.CategoryPower = cabrillo.CategoryPowerHigh
+	case "LOW":
+		cl.CategoryPower = cabrillo.CategoryPowerLow
+	default:
+		cl.CategoryPower = cabrillo.CategoryPowerQRP
+	}
+	if !ok {
+		return
+	}
+
+	co, ok = ui.InputChoice(m.controller, "Station", []string{"FIXED", "MOBILE", "PORTABLE", "ROVER", "ROVER-LIMITED", "ROVER-UNLIMITED", "EXPEDITION", "HQ", "SCHOOL"})
+	switch co {
+	case "HIGH":
+		cl.CategoryPower = cabrillo.CategoryPowerHigh
+	case "LOW":
+		cl.CategoryPower = cabrillo.CategoryPowerLow
+	default:
+		cl.CategoryPower = cabrillo.CategoryPowerQRP
+	}
+	if !ok {
+		return
+	}
+
+	co, ok = ui.InputChoice(m.controller, "Overlay", []string{"", "CLASSIC", "ROOKIE", "TB-WIRES", "NOVICE-TECH", "OVER-50"})
+	switch co {
+	case "":
+		cl.CategoryOverlay = cabrillo.CategoryOverlayUnknown
+	case "CLASSIC":
+		cl.CategoryOverlay = cabrillo.CategoryOverlayClassic
+	case "ROOKIE":
+		cl.CategoryOverlay = cabrillo.CategoryOverlayRookie
+	case "TB-WIRES":
+		cl.CategoryOverlay = cabrillo.CategoryOverlayTBWires
+	case "NOVICE-TECH":
+		cl.CategoryOverlay = cabrillo.CategoryOverlayNoviceTech
+	case "OVER-50":
+		cl.CategoryOverlay = cabrillo.CategoryOverlayOver50
+	}
+	if !ok {
+		return
+	}
+
+	cl.ClaimedScore, ok = ui.InputInteger(m.controller, "Claimed Score")
+
+	cl.Operators = m.cfg.Operator.Call
+	for _, v := range m.alog.Records {
+		cl.QSOS = append(cl.QSOS, AdifToCabrillo(v, m.cfg))
+	}
+	cl.WriteToFile(exportFilename)
+}
+
+func AdifToCabrillo(v adif.Record, cfg *Config) cabrillo.QSO {
+	qso := cabrillo.QSO{}
+
+	freq := int(v.GetFloat(adif.Frequency) * 1e3)
+	qso.Frequency = strconv.Itoa(freq)
+	switch v.Get(adif.AMode) {
+	case "SSB":
+		qso.Mode = "PH"
+	default:
+		qso.Mode = v.Get(adif.AMode)
+	}
+
+	timeOn := v.Get(adif.QSODateStart) + " " + v.Get(adif.TimeOn)
+	t, err := time.Parse("20060102 1504", timeOn)
+	if err != nil {
+		// TODO: handle this
+	}
+	qso.Timestamp = t
+	qso.SentCall = cfg.Operator.Call
+	qso.SentRST = v.Get(adif.RSTSent)
+	qso.SentExchange = v.Get(adif.SRXString)
+	qso.RcvdCall = v.Get(adif.Call)
+	qso.RcvdRST = v.Get(adif.RSTReceived)
+	qso.RcvdExchange = v.Get(adif.STXString)
+	return qso
+}
 func (m *mainScreen) tuneLeft() {
 	freq, err := m.rig.GetFreq(goHamlib.VFOCurrent)
 	if err == nil {

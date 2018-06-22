@@ -154,7 +154,7 @@ const (
 	SKCC                      Identifier = "skcc"
 	SOTA_Reference            Identifier = "sota_ref"
 	SRX                       Identifier = "srx"
-	SRX_String                Identifier = "srx_string"
+	SRXString                 Identifier = "srx_string"
 	State                     Identifier = "state"
 	StationCallsign           Identifier = "station_callsign"
 	STX                       Identifier = "stx"
