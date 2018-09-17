@@ -159,7 +159,7 @@ func main() {
 	alog.SetHeader(adif.MyCounty, cfg.Operator.County)
 	alog.SetHeader(adif.MyCountry, cfg.Operator.Country)
 
-	logRepo, _ := git.PlainOpen(logDir)
+	logRepo, _ := git.PlainOpenWithOptions(logDir, &git.PlainOpenOptions{DetectDotGit: true})
 	var bookmarks *ham.Bookmarks
 	bmFile := filepath.Join(logDir, "bookmarks.toml")
 	if ham.FileOrDirectoryExists(bmFile) {
