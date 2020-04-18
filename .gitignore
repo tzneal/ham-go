@@ -1,3 +1,4 @@
 *.adi
 *.adif
 vendor
+.idea

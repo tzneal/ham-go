@@ -7,7 +7,7 @@ import (
 	"github.com/tzneal/ham-go/rig"
 
 	"github.com/dh1tw/goHamlib"
-	maidenhead "github.com/pd0mz/go-maidenhead"
+	"github.com/pd0mz/go-maidenhead"
 
 	"github.com/tzneal/ham-go/adif"
 	"github.com/tzneal/ham-go/callsigns"

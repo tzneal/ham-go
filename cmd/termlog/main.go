@@ -11,6 +11,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/tzneal/ham-go/cmd/termlog/ui"
 	"github.com/tzneal/ham-go/rig"
 
 	"github.com/BurntSushi/toml"
@@ -104,14 +105,16 @@ func main() {
 
 	// are we connected to a radio?
 	var rc *rig.RigCache
+	var rigConnectError error
 	if cfg.Rig.Enabled && !*noRig {
 		goHamlib.SetDebugLevel(goHamlib.DebugErr)
 		grig, err := newRig(cfg.Rig)
-		if grig == nil || err != nil {
-			log.Fatalf("error connecting to rig: %s", err)
+		if err != nil {
+			rigConnectError = err
+		} else {
+			defer grig.Close()
+			rc = rig.NewRigCache(grig, 2*time.Second)
 		}
-		defer grig.Close()
-		rc = rig.NewRigCache(grig, 2*time.Second)
 	}
 
 	// go open the log
@@ -180,6 +183,13 @@ func main() {
 	}
 
 	mainScreen := newMainScreen(cfg, alog, logRepo, bookmarks, rc, d)
+	if rigConnectError != nil {
+		if !ui.YesNoQuestion("Rig not found, proceed without rig?") {
+			mainScreen.controller.Shutdown()
+			log.Fatalf("error connecting to rig: %s", rigConnectError)
+		}
+	}
+
 	for mainScreen.Tick() {
 
 	}

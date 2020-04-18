@@ -26,6 +26,8 @@ func DrawRunes(x, y int, text []rune, fg, bg termbox.Attribute) {
 	}
 }
 
+// Clear clears the cells in the range [minX, minY], [maxX, maxY] to the
+// specified foreground and background colors.
 func Clear(minX, minY, maxX, maxY int, fg, bg termbox.Attribute) {
 	for y := minY; y <= maxY; y++ {
 		for x := minX; x <= maxX; x++ {

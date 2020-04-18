@@ -39,7 +39,7 @@ func Parse(sign string) (prefix, call, suffix string) {
 	case 1:
 		return "", sign, ""
 	case 2:
-		// some abiguity here we need to resolve, could be a prefix or a suffix
+		// some ambiguity here we need to resolve, could be a prefix or a suffix
 		if validCallRegexp.MatchString(sp[0]) {
 			return "", sp[0], sp[1]
 		}
