@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type ParseState byte
@@ -21,6 +22,7 @@ type parser struct {
 	peeked []Node
 }
 
+// ParseFile parses series of ADIF records from a file
 func ParseFile(filename string) (*Log, error) {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -34,10 +36,17 @@ func ParseFile(filename string) (*Log, error) {
 
 }
 
+// ParseString parses an ADIF record from a string
+func ParseString(s string) (*Log, error) {
+	return Parse(strings.NewReader(s))
+}
+
+// ParseString parses an ADIF record from a reader
 func Parse(r io.Reader) (*Log, error) {
 	p := &parser{}
 	return p.parse(r)
 }
+
 func (p *parser) parse(r io.Reader) (*Log, error) {
 	p.l = NewLexer()
 	go p.l.lex(r)

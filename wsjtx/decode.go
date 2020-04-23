@@ -2,8 +2,9 @@ package wsjtx
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
+	"log"
+	"os"
 	"time"
 )
 
@@ -27,10 +28,22 @@ const (
 	MessageHaltTX     MessageCode = 8
 	MessageFreeText   MessageCode = 9
 	MessageWSPRDecode MessageCode = 10
+	MessageLocation   MessageCode = 11
+	MessageLoggedADIF MessageCode = 12
 )
+
+var op, err = os.Create("/tmp/wsjtx.log")
 
 // Decode decodes a WSJT-X message
 func Decode(b []byte) (Message, error) {
+	op.WriteString("[]byte{")
+	for i := 0; i < len(b); i++ {
+		if i != 0 {
+			op.WriteString(",")
+		}
+		op.WriteString(fmt.Sprintf("0x%02x", b[i]))
+	}
+	op.WriteString("}\n\n")
 	offset := 0
 	magic := binary.BigEndian.Uint32(b[offset:])
 	offset += 4
@@ -46,13 +59,24 @@ func Decode(b []byte) (Message, error) {
 
 	code := MessageCode(binary.BigEndian.Uint32(b[offset:]))
 	offset += 4
-
 	switch code {
 	case MessageQSOLogged:
 		return decodeQSOLogged(b[offset:])
+	case MessageLoggedADIF:
+		return decodeLoggedADIF(b[offset:])
 	}
 
-	return nil, errors.New("unsupported message")
+	return nil, fmt.Errorf("unsupported message: %d", code)
+}
+
+func decodeLoggedADIF(b []byte) (Message, error) {
+	offset := 0
+	id, idSz := parseUTF8(b[offset:])
+	offset += idSz
+	// ADIF is a raw ADIF record as produced by WSJTX
+	adif, adifSz := parseUTF8(b[offset:])
+	offset += adifSz
+	return &LoggedADIF{ID: id, ADIF: adif}, nil
 }
 
 func decodeQSOLogged(b []byte) (Message, error) {
@@ -65,6 +89,7 @@ func decodeQSOLogged(b []byte) (Message, error) {
 
 	dateOff, err := decodeQDateTime(b[offset:])
 	if err != nil {
+		log.Printf("QSO-err-1")
 		return nil, err
 	}
 	offset += 13
@@ -128,8 +153,11 @@ func decodeQDateTime(b []byte) (time.Time, error) {
 
 	var t time.Time
 	switch tspec {
-	case 0:
+	case 0: // local
 		t = time.Unix(julianDay*86400, 0).In(time.UTC)
+		t = t.Add(time.Duration(msecs) * time.Millisecond)
+	case 1: // UTC
+		t = time.Unix(julianDay*86400, 0)
 		t = t.Add(time.Duration(msecs) * time.Millisecond)
 	default:
 		return t, fmt.Errorf("unsupported time spec: %d", tspec)

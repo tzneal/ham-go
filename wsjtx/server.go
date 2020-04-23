@@ -43,7 +43,9 @@ func (s *Server) run() {
 			n, _, err := s.conn.ReadFromUDP(buf)
 			if err == nil {
 				msg, err := Decode(buf[0:n])
-				if err == nil {
+				if err != nil {
+					//log.Fatalf("%s", err)
+				} else {
 					s.Messages <- msg
 				}
 			}
@@ -52,7 +54,7 @@ func (s *Server) run() {
 	}
 }
 
-// Close gracefluly shuts down the server
+// Close gracefully shuts down the server
 func (s *Server) Close() error {
 	close(s.shutdown)
 	return s.conn.Close()
