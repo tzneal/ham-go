@@ -72,6 +72,14 @@ func main() {
 		return
 	}
 
+	// go open the log
+	logDir := expandPath(cfg.Operator.Logdir)
+
+	// ensure the log directory exists
+	if !ham.FileOrDirectoryExists(logDir) {
+		os.MkdirAll(logDir, 0755)
+	}
+
 	d, err := db.Open(filepath.Join(expandPath(cfg.Operator.Logdir), "indexed.db"))
 	if err != nil {
 		log.Fatalf("error opening/creating indexed logs: %s", err)
@@ -115,14 +123,6 @@ func main() {
 			defer grig.Close()
 			rc = rig.NewRigCache(grig, 2*time.Second)
 		}
-	}
-
-	// go open the log
-	logDir := expandPath(cfg.Operator.Logdir)
-
-	// ensure the log directory exists
-	if !ham.FileOrDirectoryExists(logDir) {
-		os.MkdirAll(logDir, 0755)
 	}
 
 	var alog *adif.Log
@@ -189,7 +189,7 @@ func main() {
 		}
 	}
 	mainScreen.logInfo("logging to %s", alog.Filename)
-	if cfg.Rig.Enabled && rigConnectError == nil {
+	if cfg.Rig.Enabled && !*noRig && rigConnectError == nil {
 		rigInfo, err := mainScreen.rig.Rig.GetInfo()
 		if err != nil {
 			mainScreen.logErrorf("error communicating with rig: %s", err)
