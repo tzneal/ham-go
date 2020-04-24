@@ -372,14 +372,42 @@ func (m *mainScreen) commitLog() {
 				fileNameInRepo = fileNameInRepo[len(wt.Filesystem.Root())+1:]
 			}
 			_, err := wt.Add(fileNameInRepo)
-			if err == nil {
-				wt.Commit(commitMsg, &git.CommitOptions{
-					Author: &object.Signature{
-						Name:  m.cfg.Operator.Name,
-						Email: m.cfg.Operator.Email,
-						When:  time.Now(),
-					}})
+			if err != nil {
+				m.logErrorf("unable to add log to repo: %s", err)
+				return
 			}
+			_, err = wt.Commit(commitMsg, &git.CommitOptions{
+				Author: &object.Signature{
+					Name:  m.cfg.Operator.Name,
+					Email: m.cfg.Operator.Email,
+					When:  time.Now(),
+				}})
+			if err != nil {
+				m.logErrorf("unable to add commit to repo: %s", err)
+				return
+			}
+			succMsg := fmt.Sprintf("committed %s to repo", fileNameInRepo)
+			if m.cfg.Operator.GitPushAfterCommit {
+
+				po := &git.PushOptions{}
+				if m.cfg.Operator.GitKey != "" {
+					keyFilePath := expandPath(m.cfg.Operator.GitKey)
+					sshKey, _ := ioutil.ReadFile(keyFilePath)
+					publicKey, err := ssh.NewPublicKeys("git", []byte(sshKey), "")
+					if err != nil {
+						m.logErrorf("error reading key file: %s", err)
+					} else {
+						po.Auth = publicKey
+					}
+				}
+				err = m.repo.Push(po)
+				if err != nil && err != git.NoErrAlreadyUpToDate {
+					m.logErrorf("unable to push repository: %s", err)
+					return
+				}
+				succMsg = fmt.Sprintf("committed %s to repo and pushed", fileNameInRepo)
+			}
+			m.logInfo(succMsg)
 		}
 	}
 }

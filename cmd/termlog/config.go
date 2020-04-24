@@ -19,6 +19,8 @@ type Operator struct {
 	State              string
 	Country            string
 	Logdir             string // directory to store logs
+	GitPushAfterCommit bool
+	GitKey             string
 	DateBasedLogging   bool
 	DateBasedLogFormat string
 }
@@ -91,6 +93,8 @@ func NewConfig() *Config {
 	cfg := &Config{}
 	cfg.Operator.Logdir = "~/termlog/"
 	cfg.Operator.DateBasedLogFormat = "Jan_2006"
+	cfg.Operator.GitPushAfterCommit = true
+	cfg.Operator.GitKey = "~/.ssh/id_rsa"
 	cfg.WSJTX.Address = "127.0.0.1:2237"
 	cfg.FLLog.Address = "127.0.0.1:8421"
 
