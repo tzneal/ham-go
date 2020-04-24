@@ -16,11 +16,11 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/dh1tw/goHamlib"
-	ham "github.com/tzneal/ham-go"
+	"github.com/go-git/go-git/v5"
+	"github.com/tzneal/ham-go"
 	"github.com/tzneal/ham-go/adif"
 	_ "github.com/tzneal/ham-go/callsigns/providers" // to register providers
 	"github.com/tzneal/ham-go/db"
-	git "gopkg.in/src-d/go-git.v4"
 )
 
 func main() {
@@ -148,7 +148,6 @@ func main() {
 			fn = fmt.Sprintf(expandPath("%s/termlog.adif"), logDir)
 		}
 
-		log.Printf("opening log file %s\n", fn)
 		alog, err = adif.ParseFile(fn)
 		// not found/couldn't read it so create a new one
 		if err != nil {
@@ -187,6 +186,15 @@ func main() {
 		if !ui.YesNoQuestion("Rig not found, proceed without rig?") {
 			mainScreen.controller.Shutdown()
 			log.Fatalf("error connecting to rig: %s", rigConnectError)
+		}
+	}
+	mainScreen.logInfo("logging to %s", alog.Filename)
+	if cfg.Rig.Enabled && rigConnectError == nil {
+		rigInfo, err := mainScreen.rig.Rig.GetInfo()
+		if err != nil {
+			mainScreen.logErrorf("error communicating with rig: %s", err)
+		} else {
+			mainScreen.logInfo("connected to rig: %s [%s]", cfg.Rig.Model, rigInfo)
 		}
 	}
 

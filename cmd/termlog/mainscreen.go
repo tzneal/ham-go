@@ -2,17 +2,20 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dh1tw/goHamlib"
-	humanize "github.com/dustin/go-humanize"
-	termbox "github.com/nsf/termbox-go"
-	git "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"github.com/dustin/go-humanize"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/nsf/termbox-go"
 
-	ham "github.com/tzneal/ham-go"
+	"github.com/tzneal/ham-go"
 	"github.com/tzneal/ham-go/adif"
 	"github.com/tzneal/ham-go/cabrillo"
 	"github.com/tzneal/ham-go/callsigns"
@@ -38,6 +41,7 @@ type mainScreen struct {
 	rig        *rig.RigCache
 	d          *db.Database
 	editingQSO bool // are we editing a QSO, or creating a new one?
+	messages   *ui.Messages
 }
 
 func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks *ham.Bookmarks, rig *rig.RigCache,
@@ -66,9 +70,11 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 
 	// default to a size
 	qsoHeight := 12
+	msgHeight := 4
 	// but fill the screen if the dxcluster is disbled
 	if !cfg.DXCluster.Enabled {
-		qsoHeight = remainingHeight - 1
+		// - 2 due to the two line status bars
+		qsoHeight = remainingHeight - 2 - msgHeight
 	}
 
 	qsoList := ui.NewQSOList(yPos, alog, qsoHeight, cfg.Theme)
@@ -76,7 +82,6 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	qsoList.SetOperatorGrid(cfg.Operator.Grid)
 	c.AddWidget(qsoList)
 	yPos += qsoHeight
-
 	remainingHeight -= qsoHeight
 
 	// is the DX Cluster monitoring enabled?
@@ -105,6 +110,9 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		c.AddWidget(dxlist)
 
 	}
+
+	msgs := ui.NewMessages(yPos, msgHeight, cfg.Theme)
+	c.AddWidget(msgs)
 
 	lastSeen := ui.NewStatusBar(-2)
 	lastSeen.AddFunction(func() string {
@@ -165,6 +173,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		repo:       repo,
 		cfg:        cfg,
 		rig:        rig,
+		messages:   msgs,
 		bookmarks:  bookmarks,
 		editingQSO: false,
 		d:          d,
@@ -179,10 +188,11 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 
 	if cfg.WSJTX.Enabled {
 		wsjtxLog, err := wsjtx.NewServer(cfg.WSJTX.Address)
-		if err == nil {
-			ms.wsjtxLog = wsjtxLog
-			ms.wsjtxLog.Run()
+		if err != nil {
+			log.Fatalf("error launching WSJTx server: %s", err)
 		}
+		ms.wsjtxLog = wsjtxLog
+		ms.wsjtxLog.Run()
 	}
 
 	if cfg.FLLog.Enabled {
@@ -385,7 +395,7 @@ func (m *mainScreen) saveBookmark() {
 	b.Notes = notes
 	m.bookmarks.AddBookmark(b)
 	if err := m.bookmarks.Save(); err != nil {
-		// TODO: splash the error
+		m.logErrorf("unable to save bookmarks: %s", err)
 	}
 
 }
@@ -458,14 +468,23 @@ func (m *mainScreen) showHelp() {
 	sb.WriteString("Ctrl+H - Show Help           Ctrl+Q - Quit\n")
 	sb.WriteString("\n")
 	sb.WriteString("QSO\n")
-	sb.WriteString("Ctrl+N - New QSO\n")
-	sb.WriteString("Ctrl+S - Save QSO\n")
-	sb.WriteString("Ctrl+D - Set Date/Time on QSO to current time\n")
-	sb.WriteString("Ctrl+G - Commit log file to git\n")
-	sb.WriteString("         to current time\n")
+	sb.WriteString("Ctrl+N    - New QSO\n")
+	sb.WriteString("Ctrl+S    - Save QSO\n")
+	sb.WriteString("Ctrl+D    - Set Date/Time on QSO to current time\n")
+	sb.WriteString("Ctrl+L    - Focus QSO List\n")
+	sb.WriteString("Bookmarks\n")
+	sb.WriteString("Ctrl+B    - Bookmark Current Frequency\n")
+	sb.WriteString("Alt+B     - Display Bookmarks\n")
+	sb.WriteString("Misc\n")
+	sb.WriteString("Ctrl+G    - Commit log file to git\n")
+	sb.WriteString("            to current time\n")
+	sb.WriteString("Ctrl+R    - Force Screen Redraw\n")
+	sb.WriteString("ALt+Left  - Tune Down\n")
+	sb.WriteString("ALt+Right - Tune Up\n")
 	sb.WriteString("\n")
 	sb.WriteString("Press ESC to close")
 	ui.Splash("Commands", sb.String())
+
 }
 
 func (m *mainScreen) Tick() bool {
@@ -477,11 +496,12 @@ func (m *mainScreen) Tick() bool {
 			switch v := msg.(type) {
 			case *wsjtx.QSOLogged:
 				arec, err := convertToADIF(v)
-				if err == nil {
+				if err != nil {
+					m.logErrorf("error converting QSO: %s", err)
+				} else {
 					m.alog.Records = append(m.alog.Records, arec)
 					m.alog.Save()
 				}
-				// TODO: log the error?
 			}
 		default:
 		}
@@ -505,6 +525,16 @@ func (m *mainScreen) Tick() bool {
 		return false
 	}
 	return true
+}
+
+func (m *mainScreen) logErrorf(s string, a ...interface{}) {
+	msg := fmt.Sprintf(s, a...)
+	m.messages.AddError(msg)
+}
+
+func (m *mainScreen) logInfo(s string, a ...interface{}) {
+	msg := fmt.Sprintf(s, a...)
+	m.messages.AddMessage(msg)
 }
 
 func convertToADIF(msg *wsjtx.QSOLogged) (adif.Record, error) {
