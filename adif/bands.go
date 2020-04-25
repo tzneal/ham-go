@@ -21,7 +21,7 @@ var Band80M = Band{
 var Band60M = Band{
 	Min:  5.3305,
 	Max:  5.4305,
-	Name: "80m",
+	Name: "60m",
 }
 
 var Band40M = Band{
