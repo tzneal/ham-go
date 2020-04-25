@@ -94,7 +94,8 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		}
 		dxclient := dxcluster.NewClient(dcfg)
 		dxclient.Run()
-		dxlist := ui.NewDXClusterList(yPos, dxclient, remainingHeight-2, cfg.Theme)
+		dxHeight := remainingHeight - 2 - msgHeight
+		dxlist := ui.NewDXClusterList(yPos, dxclient, dxHeight, cfg.Theme)
 		if rig != nil {
 			dxlist.OnTune(func(f float64) {
 				f = f * 1e6
@@ -108,7 +109,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 			})
 		}
 		c.AddWidget(dxlist)
-
+		yPos += dxHeight
 	}
 
 	msgs := ui.NewMessages(yPos, msgHeight, cfg.Theme)

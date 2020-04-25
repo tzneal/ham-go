@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strconv"
 
 	termbox "github.com/nsf/termbox-go"
@@ -47,7 +48,7 @@ func (d *DXClusterList) Redraw() {
 	default:
 	}
 
-	for line := 0; line < d.maxLines; line++ {
+	for line := 0; line < d.maxLines-1; line++ {
 		idx := len(d.spots) - line - 1 - d.offset
 		curLine := d.yPos + line
 
@@ -64,8 +65,8 @@ func (d *DXClusterList) Redraw() {
 			spot := d.spots[idx]
 			xPos := 0
 			Clear(xPos, curLine, xPos+w-xPos, curLine, fg, bg)
-			DrawText(xPos, curLine, spot.Spotter, fg, bg)
-			xPos += 10
+			/*DrawText(xPos, curLine, spot.Spotter, fg, bg)
+			xPos += 10*/
 			DrawText(xPos, curLine, strconv.FormatFloat(spot.Frequency, 'f', -1, 64), fg, bg)
 			xPos += 10
 			DrawText(xPos, curLine, spot.DXStation, fg, bg)
@@ -79,6 +80,10 @@ func (d *DXClusterList) Redraw() {
 			Clear(0, curLine, w-1, curLine, termbox.ColorDefault, termbox.ColorDefault)
 		}
 	}
+
+	Clear(0, d.yPos+d.maxLines-1, w, d.yPos+d.maxLines-1, d.theme.QSOListHeaderFG, d.theme.QSOListHeaderBG)
+	label := fmt.Sprintf("%d spots", len(d.spots))
+	DrawText(0, d.yPos+d.maxLines-1, label, d.theme.QSOListHeaderFG, d.theme.QSOListHeaderBG)
 }
 
 func (d *DXClusterList) SetController(c Controller) {
@@ -115,7 +120,7 @@ func (d *DXClusterList) HandleEvent(key input.Key) {
 	case input.KeyArrowDown:
 		if d.selected+d.offset < len(d.spots)-1 {
 			d.selected++
-			if d.selected >= d.offset+d.maxLines {
+			if d.selected > d.offset+d.maxLines-2 {
 				d.offset++
 			}
 		}

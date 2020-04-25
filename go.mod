@@ -30,6 +30,7 @@ require (
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 	golang.org/x/text v0.3.2
 	gopkg.in/src-d/go-billy.v4 v4.1.1
+	gopkg.in/src-d/go-git-fixtures.v3 v3.5.0 // indirect
 	gopkg.in/src-d/go-git.v4 v4.4.0
 	gopkg.in/warnings.v0 v0.1.2
 )
