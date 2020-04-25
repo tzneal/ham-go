@@ -49,9 +49,10 @@ func formatField(value string, width int) string {
 func (q *QSOList) Redraw() {
 	w, _ := termbox.Size()
 	fields := []struct {
-		label string
-		field adif.Identifier
-		width int
+		label       string
+		field       adif.Identifier
+		backupField adif.Identifier
+		width       int
 	}{
 		{
 			label: "Call",
@@ -104,9 +105,10 @@ func (q *QSOList) Redraw() {
 			width: 12,
 		},
 		{
-			label: "Notes",
-			field: adif.Notes,
-			width: 40,
+			label:       "Notes",
+			field:       adif.Notes,
+			backupField: adif.Comment,
+			width:       40,
 		},
 	}
 
@@ -159,6 +161,8 @@ func (q *QSOList) Redraw() {
 						distance := q.operatorLocation.Distance(otherLoc)
 						fieldValue = strconv.FormatFloat(distance, 'f', 1, 64)
 					}
+				} else if fieldValue == "" && f.backupField != "" {
+					fieldValue = rec.Get(f.backupField)
 				}
 				fieldText := formatField(fieldValue, f.width)
 				DrawText(xPos, curLine, fieldText, fg, bg)
