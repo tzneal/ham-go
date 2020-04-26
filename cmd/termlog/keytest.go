@@ -15,11 +15,11 @@ func KeyTest() {
 	termbox.SetInputMode(termbox.InputAlt)
 	termbox.SetOutputMode(termbox.Output256)
 
-	fmt.Println("Press a key to determine the even tcode")
+	fmt.Println("Press a key to determine the event code")
 	for {
 		d := [10]byte{}
 		ev := termbox.PollRawEvent(d[:])
-		fmt.Println("Event: ", hex.EncodeToString(d[0:ev.N]), input.ParseKeyEvent(d[0:ev.N]))
+		fmt.Println("Event len=", ev.N, "hex=", hex.EncodeToString(d[0:ev.N]), "key=", input.ParseKeyEvent(d[0:ev.N]))
 		if ev.N == 1 && d[0] == 0x03 {
 			fmt.Println("Ctrl+C pressed, exiting")
 			return
