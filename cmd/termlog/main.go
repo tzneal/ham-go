@@ -29,6 +29,7 @@ func main() {
 	search := flag.String("search", "", "search the indexed ADIF files and print the results")
 	hamlibList := flag.Bool("hamlib-list", false, "list the supported libhamlib devices")
 	noRig := flag.Bool("no-rig", false, "disable rig control, even if enabled in the config file")
+	logOverride := flag.String("log", "", "specify a log file to load and write to")
 	keyTest := flag.Bool("key-test", false, "list keyboard events")
 	upgradeConfig := flag.Bool("upgrade-config", false, "upgrade the configuration file to the latest format")
 	config := flag.String("config", "~/.termlog.toml", "path to the configuration file")
@@ -126,15 +127,13 @@ func main() {
 	}
 
 	var alog *adif.Log
-	if flag.NArg() > 0 {
-		alog, err = adif.ParseFile(flag.Arg(0))
-
+	if *logOverride != "" {
+		alog, err = adif.ParseFile(*logOverride)
 		if err != nil {
 			if os.IsNotExist(err) {
 				alog = adif.NewLog()
-				alog.Filename = flag.Arg(0)
+				alog.Filename = *logOverride
 				alog.Save()
-
 			} else {
 				log.Fatalf("error reading ADIF file %s", flag.Arg(0))
 			}
