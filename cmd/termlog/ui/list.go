@@ -22,6 +22,8 @@ type List struct {
 	controller  Controller
 	src         ListSource
 	drawOutline bool
+	reverse     bool
+	title       string
 }
 
 func NewList(yPos int, maxLines int, src ListSource, theme Theme) *List {
@@ -45,16 +47,22 @@ func (d *List) Redraw() {
 		Clear(d.xPos-1, d.yPos, d.xPos-1, d.yPos+d.maxLines+1, d.theme.QSOListHeaderFG, d.theme.QSOListHeaderBG)
 		Clear(d.xPos+w+1, d.yPos, d.xPos+w+1, d.yPos+d.maxLines+1, d.theme.QSOListHeaderFG, d.theme.QSOListHeaderBG)
 		Clear(d.xPos-1, d.yPos+d.maxLines+1, d.xPos+w+1, d.yPos+d.maxLines+1, d.theme.QSOListHeaderFG, d.theme.QSOListHeaderBG)
+		if d.title != "" {
+			DrawText(d.xPos, d.yPos, d.title, d.theme.QSOListHeaderFG, d.theme.QSOListHeaderBG)
+		}
 	}
 
 	for line := 0; line < d.maxLines; line++ {
 		idx := d.src.Length() - line - 1 - d.offset
+		if d.reverse {
+			idx = line + d.offset
+		}
 		curLine := d.yPos + line + 1
 
 		fg := termbox.ColorWhite
 		bg := termbox.ColorDefault
 
-		// draw selected lines differnetly while focused
+		// draw selected lines differently while focused
 		if d.selected == d.offset+line && d.focused {
 			fg = termbox.ColorBlack
 			bg = termbox.ColorWhite
@@ -80,6 +88,9 @@ func (d *List) Focus(b bool) {
 }
 
 func (d *List) Selected() int {
+	if d.reverse {
+		return d.selected + d.offset
+	}
 	return d.src.Length() - d.selected - 1 - d.offset
 }
 
