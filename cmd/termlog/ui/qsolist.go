@@ -264,6 +264,7 @@ func (q *QSOList) logStatus() string {
 	sb := strings.Builder{}
 	sb.WriteString(fmt.Sprintf("%d QSOs ", len(q.log.Records)))
 	bands := map[string]int{}
+	modes := map[string]int{}
 	for _, rec := range q.log.Records {
 		band := rec.Get(adif.ABand)
 		if band != "" {
@@ -278,13 +279,27 @@ func (q *QSOList) logStatus() string {
 				}
 			}
 		}
+		mode := rec.Get(adif.AMode)
+		if mode != "" {
+			modes[mode] = modes[mode] + 1
+		}
 	}
 
-	// to ensure sorted output
-	for _, b := range adif.Bands {
-		count, ok := bands[b.Name]
-		if ok && count > 0 {
-			sb.WriteString(fmt.Sprintf("%s/%d ", b.Name, count))
+	if len(q.log.Records) > 0 {
+		sb.WriteString(" | ")
+		// to ensure sorted output
+		for _, b := range adif.Bands {
+			count, ok := bands[b.Name]
+			if ok && count > 0 {
+				sb.WriteString(fmt.Sprintf("%s/%d ", b.Name, count))
+			}
+		}
+		sb.WriteString(" | ")
+		for _, m := range adif.ModeList {
+			count, ok := modes[m]
+			if ok && count > 0 {
+				sb.WriteString(fmt.Sprintf("%s/%d ", m, count))
+			}
 		}
 	}
 	return sb.String()
