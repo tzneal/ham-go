@@ -63,7 +63,6 @@ func (m *Messages) Redraw() {
 	for line := 0; line <= m.maxLines; line++ {
 		fg := termbox.ColorWhite
 		bg := termbox.ColorDefault
-
 		pos := m.offset + line
 		if pos >= 0 && pos < len(m.messages) {
 			// reverse order
@@ -84,7 +83,7 @@ func (m *Messages) Redraw() {
 }
 
 func (m *Messages) Focus(b bool) {
-	m.focused = true
+	m.focused = b
 }
 func (m *Messages) HandleEvent(key input.Key) {
 	switch key {
