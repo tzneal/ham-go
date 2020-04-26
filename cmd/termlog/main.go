@@ -203,12 +203,17 @@ func main() {
 }
 
 func expandPath(path string) string {
-	if strings.HasPrefix(path, "~") {
-		usr, err := user.Current()
-		if err == nil {
-			path = usr.HomeDir + path[1:]
+	segs := strings.Fields(path)
+
+	for i, seg := range segs {
+		if strings.HasPrefix(seg, "~") {
+			usr, err := user.Current()
+			if err == nil {
+				seg = usr.HomeDir + seg[1:]
+				segs[i] = seg
+			}
 		}
 	}
 
-	return filepath.Clean(path)
+	return filepath.Clean(strings.Join(segs, " "))
 }

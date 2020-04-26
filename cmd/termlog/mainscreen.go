@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -215,6 +216,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	c.AddCommand(input.KeyCtrlR, ms.redrawAll)
 	c.AddCommand(input.KeyCtrlX, ms.exportCabrillo)
 
+	c.AddCommand(input.KeyCtrlE, ms.executeCommands)
 	c.AddCommand(input.KeyAltLeft, ms.tuneLeft)
 	c.AddCommand(input.KeyAltRight, ms.tuneRight)
 	return ms
@@ -355,7 +357,7 @@ func (m *mainScreen) redrawAll() {
 
 func (m *mainScreen) commitLog() {
 	if m.repo == nil {
-		ui.Splash("Error", "Log directory is not a git repository")
+		m.logErrorf("Log directory is not a git repository")
 		return
 	}
 	if m.repo != nil {
@@ -564,6 +566,60 @@ func (m *mainScreen) logErrorf(s string, a ...interface{}) {
 func (m *mainScreen) logInfo(s string, a ...interface{}) {
 	msg := fmt.Sprintf(s, a...)
 	m.messages.AddMessage(msg)
+}
+
+func (m *mainScreen) executeCommands() {
+	_, h := termbox.Size()
+	cml := ui.NewCommandList(5, m.cfg.Operator.Commands, h-10, m.cfg.Theme)
+	pc := ui.NewPanelController(m.cfg.Theme)
+	pc.AddWidget(cml)
+	pc.Focus(cml)
+
+	execute := func(cmd ui.Command) {
+		start := time.Now()
+		ec := exec.Command("bash", "-c", cmd.Command)
+		op, err := ec.CombinedOutput()
+		if err != nil {
+			if len(op) > 0 {
+				m.logErrorf("error executing %s [%s]: %s", cmd.Name, err, string(op))
+			} else {
+				m.logErrorf("error executing %s [%s]", cmd.Name, err)
+			}
+		} else {
+			took := time.Now().Sub(start)
+			if len(op) > 0 {
+				m.logInfo("executed %s (took %s): %s", cmd.Name, took, string(op))
+			} else {
+				m.logInfo("executed %s (took %s)", cmd.Name, took)
+			}
+		}
+	}
+lfor:
+	for {
+		pc.Redraw()
+		termbox.Flush()
+		ev := input.ReadKeyEvent()
+		switch ev {
+		case input.KeyEscape:
+			break lfor
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+			idx := int(ev) - 49
+			if idx >= 0 && idx < len(m.cfg.Operator.Commands) {
+				cmd := m.cfg.Operator.Commands[idx]
+				execute(cmd)
+				break lfor
+			}
+		case input.KeyEnter:
+			idx := cml.Selected()
+			if idx >= 0 && idx < len(m.cfg.Operator.Commands) {
+				cmd := m.cfg.Operator.Commands[idx]
+				execute(cmd)
+			}
+			break lfor
+		default:
+			pc.HandleEvent(ev)
+		}
+	}
 }
 
 func convertToADIF(msg *wsjtx.QSOLogged) (adif.Record, error) {

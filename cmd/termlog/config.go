@@ -23,6 +23,7 @@ type Operator struct {
 	GitKey             string
 	DateBasedLogging   bool
 	DateBasedLogFormat string
+	Commands           []ui.Command
 }
 
 // Rig is the radio that may be controlled
@@ -95,6 +96,10 @@ func NewConfig() *Config {
 	cfg.Operator.DateBasedLogFormat = "Jan_2006"
 	cfg.Operator.GitPushAfterCommit = true
 	cfg.Operator.GitKey = "~/.ssh/id_rsa"
+	cfg.Operator.Commands = append(cfg.Operator.Commands, ui.Command{
+		Name:    "Create Empty File",
+		Command: "touch /tmp/command_executed.txt",
+	})
 	cfg.WSJTX.Address = "127.0.0.1:2237"
 	cfg.FLLog.Address = "127.0.0.1:8421"
 
