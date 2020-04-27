@@ -424,6 +424,13 @@ func (m *mainScreen) saveBookmark() {
 		return
 	}
 	b.Notes = notes
+
+	mode, w, err := m.rig.GetMode(goHamlib.VFOCurrent)
+	if err == nil {
+		b.Mode = ham.BookmarkMode(mode)
+		b.Width = w
+	}
+
 	m.bookmarks.AddBookmark(b)
 	if err := m.bookmarks.Save(); err != nil {
 		m.logErrorf("unable to save bookmarks: %s", err)
@@ -447,7 +454,11 @@ lfor:
 		case input.KeyEnter:
 			idx := bml.Selected()
 			if idx >= 0 && idx < len(m.bookmarks.Bookmark) {
-				m.qso.SetFrequency(m.bookmarks.Bookmark[idx].Frequency * 1e6)
+				bm := m.bookmarks.Bookmark[idx]
+				m.qso.SetFrequency(bm.Frequency * 1e6)
+				if bm.Width != 0 && goHamlib.Mode(bm.Mode) != goHamlib.ModeNONE {
+					m.rig.SetMode(goHamlib.VFOCurrent, goHamlib.Mode(bm.Mode), bm.Width)
+				}
 			}
 			break lfor
 		case input.KeyDelete:
@@ -498,6 +509,7 @@ func (m *mainScreen) showHelp() {
 	sb := strings.Builder{}
 	sb.WriteString("Ctrl+H - Show Help           Ctrl+Q - Quit\n")
 	sb.WriteString("\n")
+
 	sb.WriteString("QSO\n")
 	sb.WriteString("Ctrl+N    - New QSO\n")
 	sb.WriteString("Ctrl+S    - Save QSO\n")
@@ -532,6 +544,7 @@ func (m *mainScreen) Tick() bool {
 				if err != nil {
 					m.logErrorf("error converting QSO: %s", err)
 				} else {
+					m.logInfo("received QSO from WSJT-X: %s %s", arec.Get(adif.Call), arec.Get(adif.AMode))
 					m.alog.Records = append(m.alog.Records, arec)
 					m.alog.Save()
 				}

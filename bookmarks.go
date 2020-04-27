@@ -1,11 +1,13 @@
 package ham
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/dh1tw/goHamlib"
 )
 
 // Bookmarks are used for storing frequencies and notes
@@ -14,11 +16,32 @@ type Bookmarks struct {
 	Filename string `toml:"-"`
 }
 
+// BookmarkMode exists solely so we can provide a text serialization of goHamlib.Mode
+type BookmarkMode goHamlib.Mode
+
+func (b BookmarkMode) MarshalText() (text []byte, err error) {
+	s := goHamlib.ModeName[goHamlib.Mode(b)]
+	if s == "" {
+		return nil, fmt.Errorf("unknown mode: %d", b)
+	}
+	return []byte(s), nil
+}
+func (b *BookmarkMode) UnmarshalText(text []byte) error {
+	v, ok := goHamlib.ModeValue[string(text)]
+	if !ok {
+		return fmt.Errorf("unknown mode %s", string(text))
+	}
+	*b = BookmarkMode(v)
+	return nil
+}
+
 // Bookmark is a bookmark of a particular frequency with notes for later reference
 type Bookmark struct {
 	Frequency float64
+	Mode      BookmarkMode
 	Created   time.Time
 	Notes     string
+	Width     int
 }
 
 // OpenBookmarks opens a bookmarks file
