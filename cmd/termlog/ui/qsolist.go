@@ -139,7 +139,7 @@ func (q *QSOList) Redraw() {
 			fg := termbox.ColorWhite
 			bg := termbox.ColorDefault
 
-			// draw selected lines differnetly while focused
+			// draw selected lines differently while focused
 			if q.selected == q.offset+line && q.focused {
 				fg = termbox.ColorBlack
 				bg = termbox.ColorWhite

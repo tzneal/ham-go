@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
+	"go/format"
+	"io/ioutil"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -18,25 +22,23 @@ func main() {
 	defer f.Close()
 	cr := csv.NewReader(f)
 
-	op, err := os.Create("../db.go")
-	if err != nil {
-		panic(err)
-	}
-	defer op.Close()
+	src := &bytes.Buffer{}
 
-	fmt.Fprintf(op, "package dxcc\n")
-	fmt.Fprintf(op, "type Entity struct {\n")
-	fmt.Fprintf(op, "  Entity string\n")
-	fmt.Fprintf(op, "  DXCC int\n")
-	fmt.Fprintf(op, "  Continent string\n")
-	fmt.Fprintf(op, "  CQZone int\n")
-	fmt.Fprintf(op, "  ITUZone int\n")
-	fmt.Fprintf(op, "  Latitude float64\n")
-	fmt.Fprintf(op, "  Longitude float64\n")
-	fmt.Fprintf(op, "  Prefixes []string\n")
-	fmt.Fprintf(op, "  PrefixRegexp *regexp.Regexp\n")
-	fmt.Fprintf(op, "}\n")
-	fmt.Fprintf(op, "var Entities = []Entity{\n")
+	fmt.Fprint(src, "package dxcc\n")
+	fmt.Fprint(src, "import \"regexp\"\n")
+	fmt.Fprint(src, "type Entity struct {\n")
+	fmt.Fprint(src, "  Entity string\n")
+	fmt.Fprint(src, "  DXCC int\n")
+	fmt.Fprint(src, "  Continent string\n")
+	fmt.Fprint(src, "  CQZone int\n")
+	fmt.Fprint(src, "  ITUZone int\n")
+	fmt.Fprint(src, "  Latitude float64\n")
+	fmt.Fprint(src, "  Longitude float64\n")
+	fmt.Fprint(src, "  Prefixes []string\n")
+	fmt.Fprint(src, "  Score int\n")
+	fmt.Fprint(src, "  PrefixRegexp *regexp.Regexp\n")
+	fmt.Fprint(src, "}\n")
+	fmt.Fprint(src, "var Entities = []Entity{\n")
 	for {
 		record, err := cr.Read()
 		if err != nil {
@@ -54,19 +56,30 @@ func main() {
 		// positive is west, so convert to normal form
 		lon *= -1
 
-		fmt.Fprintf(op, "{\n")
-		fmt.Fprintf(op, `  Entity: "%s",`+"\n", entity)
-		fmt.Fprintf(op, `  DXCC: %s,`+"\n", dxcc)
-		fmt.Fprintf(op, `  Continent: "%s",`+"\n", continent)
-		fmt.Fprintf(op, `  CQZone: %s,`+"\n", cqZone)
-		fmt.Fprintf(op, `  ITUZone: %s,`+"\n", ituZone)
-		fmt.Fprintf(op, `  Latitude: %f,`+"\n", lat)
-		fmt.Fprintf(op, `  Longitude: %f,`+"\n", lon)
-		fmt.Fprintf(op, "  Prefixes: []string{%s},\n", splitPrefixes(prefixes))
-		fmt.Fprintf(op, `  PrefixRegexp: regexp.MustCompile("%s"),`+"\n", prefixRegexp(prefixes))
-		fmt.Fprintf(op, "},")
+		fmt.Fprintf(src, "{\n")
+		fmt.Fprintf(src, `  Entity: "%s",`+"\n", entity)
+		fmt.Fprintf(src, `  DXCC: %s,`+"\n", dxcc)
+		fmt.Fprintf(src, `  Continent: "%s",`+"\n", continent)
+		fmt.Fprintf(src, `  CQZone: %s,`+"\n", cqZone)
+		fmt.Fprintf(src, `  ITUZone: %s,`+"\n", ituZone)
+		fmt.Fprintf(src, `  Latitude: %f,`+"\n", lat)
+		fmt.Fprintf(src, `  Longitude: %f,`+"\n", lon)
+		fmt.Fprintf(src, "  Prefixes: []string{%s},\n", splitPrefixes(prefixes))
+		fmt.Fprintf(src, `  PrefixRegexp: regexp.MustCompile("%s"),`+"\n", prefixRegexp(prefixes))
+		fmt.Fprintf(src, "},")
 	}
-	fmt.Fprintf(op, "}\n")
+	fmt.Fprintf(src, "}\n")
+
+	b := src.Bytes()
+	b, err = format.Source(b)
+	if err != nil {
+		fmt.Printf("%s\n", string(src.Bytes()))
+		panic(err)
+	}
+	if err := ioutil.WriteFile("../db.go", b, 0666); err != nil {
+		log.Fatalf("can't write output: %v\n", err)
+	}
+
 }
 
 func splitPrefixes(pfx string) string {
@@ -94,7 +107,7 @@ func prefixRegexp(pfx string) string {
 			initialChars[p[0]] = struct{}{}
 		}
 	}
-	sorted := []byte{}
+	var sorted []byte
 	for c := range initialChars {
 		sorted = append(sorted, c)
 	}
