@@ -40,6 +40,8 @@ go install github.com/tzneal/ham-go/cmd/termlog
 | Ctrl+B    | Save a bookmark |
 | Alt+B     | Open the bookmark list |
 | Ctrl+L    | Focus the QSO List |
+| Ctrl+E    | Display custom user commands |
+| Ctrl+R    | Force screen redraw |
 | Alt+Left  | Tune down 500khz |
 | Alt+Right | Tune up 500khz |
 
@@ -71,4 +73,5 @@ Enough code to parse the realtime fldigi emitted logs and save them to termlog.
 
 ## wsjtx
 
-Enough code to parse the realtime WSJT-X emitted logs and save them to termlog.
+Enough code to parse the realtime WSJT-X emitted logs and save them to termlog. I use this when running
+FT8 to capture logs in real time from WSJT-X.

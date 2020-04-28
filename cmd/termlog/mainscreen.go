@@ -74,8 +74,8 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	msgHeight := 4
 	// but fill the screen if the dxcluster is disbled
 	if !cfg.DXCluster.Enabled {
-		// - 2 due to the two line status bars
-		qsoHeight = remainingHeight - 2 - msgHeight
+		// - 1 due to the status bar
+		qsoHeight = remainingHeight - 1 - msgHeight
 	}
 
 	qsoList := ui.NewQSOList(yPos, alog, qsoHeight, cfg.Theme)
@@ -95,7 +95,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		}
 		dxclient := dxcluster.NewClient(dcfg)
 		dxclient.Run()
-		dxHeight := remainingHeight - 2 - msgHeight
+		dxHeight := remainingHeight - 1 - msgHeight // -1 due to status bar
 		dxlist := ui.NewDXClusterList(yPos, dxclient, dxHeight, cfg.Theme)
 		if rig != nil {
 			dxlist.OnTune(func(f float64) {
@@ -115,25 +115,6 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 
 	msgs := ui.NewMessages(yPos, msgHeight, cfg.Theme)
 	c.AddWidget(msgs)
-
-	lastSeen := ui.NewStatusBar(-2)
-	lastSeen.AddFunction(func() string {
-		call := qso.Call()
-		if call == "" {
-			return ""
-		}
-		res, _ := d.Search(call)
-		switch len(res) {
-		case 0:
-			return fmt.Sprintf("Have never seen %s", call)
-		case 1:
-			return fmt.Sprintf("Seen once at %s (%s)", adif.UTCTimestamp(res[0].Date), humanize.RelTime(res[0].Date, time.Now(), "ago", ""))
-		default:
-			last := res[len(res)-1].Date
-			return fmt.Sprintf("Seen %d times, first %s last %s (%s)", len(res), adif.UTCTimestamp(res[0].Date), adif.UTCTimestamp(last), humanize.RelTime(last, time.Now(), "ago", ""))
-		}
-	}, 80)
-	c.AddWidget(lastSeen)
 
 	fb := ui.NewStatusBar(-1)
 	if rig != nil {
@@ -164,6 +145,24 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		}
 		return sb.String()
 	}, 20)
+
+	fb.AddFunction(func() string {
+		call := qso.Call()
+		if call == "" {
+			return ""
+		}
+		res, _ := d.Search(call)
+		switch len(res) {
+		case 0:
+			return fmt.Sprintf("Have never seen %s", call)
+		case 1:
+			return fmt.Sprintf("Seen once at %s (%s)", adif.UTCTimestamp(res[0].Date), humanize.RelTime(res[0].Date, time.Now(), "ago", ""))
+		default:
+			last := res[len(res)-1].Date
+			return fmt.Sprintf("Seen %d times, first %s last %s (%s)", len(res), adif.UTCTimestamp(res[0].Date), adif.UTCTimestamp(last), humanize.RelTime(last, time.Now(), "ago", ""))
+		}
+	}, 80)
+
 	c.AddWidget(fb)
 
 	c.Focus(qso)
