@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	termbox "github.com/nsf/termbox-go"
+	"github.com/nsf/termbox-go"
+
 	"github.com/tzneal/ham-go/cmd/termlog/input"
 	"github.com/tzneal/ham-go/dxcluster"
 )
@@ -37,15 +38,19 @@ func NewDXClusterList(yPos int, dxc *dxcluster.Client, maxLines int, theme Theme
 func (d *DXClusterList) Redraw() {
 	w, _ := termbox.Size()
 
-	select {
-	case spot := <-d.dxc.Spots:
-		d.spots = append(d.spots, spot)
-		// possibly remove the oldest one
-		if len(d.spots) > d.maxEntries {
-			copy(d.spots, d.spots[1:])
-			d.spots = d.spots[0 : len(d.spots)-1]
+lfor:
+	for {
+		select {
+		case spot := <-d.dxc.Spots:
+			d.spots = append(d.spots, spot)
+			// possibly remove the oldest one
+			if len(d.spots) > d.maxEntries {
+				copy(d.spots, d.spots[1:])
+				d.spots = d.spots[0 : len(d.spots)-1]
+			}
+		default:
+			break lfor
 		}
-	default:
 	}
 
 	for line := 0; line < d.maxLines-1; line++ {
@@ -55,7 +60,7 @@ func (d *DXClusterList) Redraw() {
 		fg := termbox.ColorWhite
 		bg := termbox.ColorDefault
 
-		// draw selected lines differnetly while focused
+		// draw selected lines differently while focused
 		if d.selected == d.offset+line && d.focused {
 			fg = termbox.ColorBlack
 			bg = termbox.ColorWhite
