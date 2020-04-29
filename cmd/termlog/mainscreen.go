@@ -25,6 +25,7 @@ import (
 	"github.com/tzneal/ham-go/db"
 	"github.com/tzneal/ham-go/dxcluster"
 	"github.com/tzneal/ham-go/fldigi"
+	"github.com/tzneal/ham-go/pota"
 	"github.com/tzneal/ham-go/rig"
 	"github.com/tzneal/ham-go/wsjtx"
 )
@@ -43,6 +44,13 @@ type mainScreen struct {
 	d          *db.Database
 	editingQSO bool // are we editing a QSO, or creating a new one?
 	messages   *ui.Messages
+	shutdown   chan struct{}
+}
+
+// used to accept log writes
+func (m *mainScreen) Write(p []byte) (n int, err error) {
+	m.logErrorf(string(p))
+	return len(p), nil
 }
 
 func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks *ham.Bookmarks, rig *rig.RigCache,
@@ -72,8 +80,9 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	// default to a size
 	qsoHeight := 12
 	msgHeight := 4
+
 	// but fill the screen if the dxcluster is disbled
-	if !cfg.DXCluster.Enabled {
+	if !cfg.DXCluster.Enabled && !cfg.POTASpot.Enabled {
 		// - 1 due to the status bar
 		qsoHeight = remainingHeight - 1 - msgHeight
 	}
@@ -85,20 +94,14 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	yPos += qsoHeight
 	remainingHeight -= qsoHeight
 
-	// is the DX Cluster monitoring enabled?
-	if cfg.DXCluster.Enabled {
-		dcfg := dxcluster.Config{
-			Network:    "tcp",
-			Address:    fmt.Sprintf("%s:%d", cfg.DXCluster.Server, cfg.DXCluster.Port),
-			Callsign:   cfg.Operator.Call,
-			ZoneLookup: cfg.DXCluster.ZoneLookup,
-		}
-		dxclient := dxcluster.NewClient(dcfg)
-		dxclient.Run()
+	// is the spot monitoring enabled?
+	shutdown := make(chan struct{})
+	if cfg.DXCluster.Enabled || cfg.POTASpot.Enabled {
+		// create the UI
 		dxHeight := remainingHeight - 1 - msgHeight // -1 due to status bar
-		dxlist := ui.NewDXClusterList(yPos, dxclient, dxHeight, cfg.Theme)
+		spotlist := ui.NewSpottingList(yPos, dxHeight, cfg.Theme)
 		if rig != nil {
-			dxlist.OnTune(func(f float64) {
+			spotlist.OnTune(func(f float64) {
 				f = f * 1e6
 				rig.SetFreq(goHamlib.VFOCurrent, f)
 				// ensure we are in the proper mode
@@ -109,8 +112,72 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 				}
 			})
 		}
-		c.AddWidget(dxlist)
+		c.AddWidget(spotlist)
 		yPos += dxHeight
+
+		if cfg.DXCluster.Enabled {
+			dcfg := dxcluster.Config{
+				Network:    "tcp",
+				Address:    fmt.Sprintf("%s:%d", cfg.DXCluster.Server, cfg.DXCluster.Port),
+				Callsign:   cfg.Operator.Call,
+				ZoneLookup: cfg.DXCluster.ZoneLookup,
+			}
+			dxclient := dxcluster.NewClient(dcfg)
+			dxclient.Run()
+			go func() {
+				for {
+					select {
+					case <-shutdown:
+						return
+					case spot := <-dxclient.Spots:
+						st := fmt.Sprintf("%s %s", time.Now().Format("02 Jan 06"), spot.Time)
+						tm, err := time.Parse("02 Jan 06 1504Z", st)
+						if err != nil {
+							log.Printf("error parsing DX time: %s", err)
+						}
+						spotlist.AddSpot(ui.SpotRecord{
+							Source:    "DX",
+							Frequency: spot.Frequency,
+							Station:   spot.DXStation,
+							Comment:   spot.Comment,
+							Time:      tm.Local(),
+							Location:  spot.Location,
+						})
+					}
+				}
+			}()
+		}
+		if cfg.POTASpot.Enabled {
+			pcfg := pota.Config{
+				URL: cfg.POTASpot.URL,
+			}
+			pclient := pota.NewClient(pcfg)
+			pclient.Run()
+			go func() {
+				for {
+					select {
+					case <-shutdown:
+						return
+					case spot := <-pclient.Spots:
+						freq, _ := strconv.ParseFloat(spot.Frequency, 64)
+						tm, _ := spot.Time()
+						location := spot.ParkName
+						if spot.LocationDescription != "" {
+							location = fmt.Sprintf("%s/%s", spot.ParkName, spot.LocationDescription)
+						}
+						spotlist.AddSpot(ui.SpotRecord{
+							Source:    "POTA",
+							Frequency: freq,
+							Station:   spot.Activator,
+							Comment:   spot.Comments,
+							Time:      tm.Local(),
+							Location:  location,
+						})
+						_ = spot
+					}
+				}
+			}()
+		}
 	}
 
 	msgs := ui.NewMessages(yPos, msgHeight, cfg.Theme)
@@ -178,7 +245,11 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		bookmarks:  bookmarks,
 		editingQSO: false,
 		d:          d,
+		shutdown:   shutdown,
 	}
+
+	log.SetFlags(0)
+	log.SetOutput(ms)
 
 	qsoList.OnSelect(func(r adif.Record) {
 		if !qso.HasRig() {
@@ -567,6 +638,7 @@ func (m *mainScreen) Tick() bool {
 	}
 	if !m.controller.HandleEvent(input.ReadKeyEvent()) {
 		m.controller.Shutdown()
+		close(m.shutdown)
 		return false
 	}
 	return true

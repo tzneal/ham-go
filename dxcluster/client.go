@@ -140,7 +140,7 @@ func (c *Client) run() {
 						pt := maidenhead.NewPoint(ent.Latitude, ent.Longitude)
 						gs, err := pt.GridSquare()
 						if err == nil {
-							spot.Location = gs[0:4]
+							spot.Location = gs[0:4] + " " + ent.Entity
 						}
 					}
 				}

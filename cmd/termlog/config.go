@@ -48,6 +48,12 @@ type DXCluster struct {
 	ZoneLookup bool
 }
 
+// POTASpot allows enabled POTA spot monitoring
+type POTASpot struct {
+	Enabled bool
+	URL     string
+}
+
 // Label is a label that will be displayed when tuned to a particular frequency.
 // The start/end are the limits.
 type Label struct {
@@ -56,7 +62,7 @@ type Label struct {
 	End   float64
 }
 
-// Config is the top level configuraton structure corresponding to ~/.termlog
+// Config is the top level configuration structure corresponding to ~/.termlog
 type Config struct {
 	Operator  Operator
 	Rig       Rig
@@ -64,6 +70,7 @@ type Config struct {
 	FLLog     FLLog
 	Lookup    map[string]callsigns.LookupConfig
 	DXCluster DXCluster
+	POTASpot  POTASpot
 	Theme     ui.Theme
 	Label     []Label
 }
@@ -128,6 +135,11 @@ func NewConfig() *Config {
 	cfg.Lookup["dxcc"] = callsigns.LookupConfig{}
 
 	cfg.DXCluster.ZoneLookup = true
+
+	// POTA
+	cfg.POTASpot.Enabled = true
+	cfg.POTASpot.URL = "https://api.pota.us/spot/activator"
+
 	// 160 meters
 	cfg.Label = append(cfg.Label, Label{
 		Name:  "E/A/G/Data/Phone",

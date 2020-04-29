@@ -10,8 +10,8 @@ features I need/want.
 
 - Saves logs as ADIF files with custom fields
 - Supports auto-commiting log files to a git repository
-- DX Cluster Monitor
-- Controls radio through hamlib (github.com/dh1tw/goHamlib)
+- DX cluster & POTA spot monitoring
+- Radio control through hamlib (github.com/dh1tw/goHamlib)
 - Logs for both WSJT-X and fldigi
 
 ## Installation

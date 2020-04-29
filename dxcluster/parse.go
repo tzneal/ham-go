@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 // Spot is a DX spot from a DX cluster
@@ -15,6 +16,13 @@ type Spot struct {
 	Comment   string
 	Time      string
 	Location  string
+}
+
+func trim(s string) string {
+	return strings.TrimFunc(s, func(r rune) bool {
+		// trim non-printable and space chars
+		return !unicode.IsPrint(r) || unicode.IsSpace(r)
+	})
 }
 
 // Parse parses a line of DX cluster output returning a spot if one could be found
@@ -40,9 +48,9 @@ func Parse(line string) (*Spot, error) {
 		return nil, fmt.Errorf("error parsing frequency in %s: %s", line, err)
 	}
 	spot.Frequency = freq
-	spot.DXStation = strings.TrimSpace(line[freqIdx:dxStationIdx])
-	spot.Comment = strings.TrimSpace(line[dxStationIdx:commentIdx])
-	spot.Time = strings.TrimSpace(line[commentIdx:timeIdx])
-	spot.Location = strings.TrimSpace(line[timeIdx:])
+	spot.DXStation = trim(line[freqIdx:dxStationIdx])
+	spot.Comment = trim(line[dxStationIdx:commentIdx])
+	spot.Time = trim(line[commentIdx:timeIdx])
+	spot.Location = trim(line[timeIdx:])
 	return spot, nil
 }
