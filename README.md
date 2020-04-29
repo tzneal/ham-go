@@ -8,12 +8,11 @@ The main driver for writing the rest of this code.  A cross platform console
 based ham contact logger.  I'm developing it for my own use, so it only has
 features I need/want.
 
-- Saves logs as ADIF files
-- Can auto-commit log files to a git repository
+- Saves logs as ADIF files with custom fields
+- Supports auto-commiting log files to a git repository
 - DX Cluster Monitor
 - Controls radio through hamlib (github.com/dh1tw/goHamlib)
 - Logs for both WSJT-X and fldigi
-
 
 ## Installation
 
@@ -26,6 +25,18 @@ go install github.com/tzneal/ham-go/cmd/termlog
 1) Run termlog once, then hit Ctrl+Q to quit.  This will create an initial
    config file at ~/.termlog.toml that you can then modify.
 2) Fill out the operator section at a minimum
+
+### Custom Fields
+In the configuration file, custom ADIF fields can be defined.  A SOTA field is defined in the default 
+configuration and can be removed if not needed.
+
+```
+  [[Operator.CustomFields]]
+    Name = "sota_ref"
+    Label = "SOTA"
+    Width = 8
+    Default = ""
+```
 
 # Commands
     

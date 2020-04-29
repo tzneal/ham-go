@@ -64,7 +64,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	remainingHeight--
 
 	lookup := callsigns.BuildLookup(cfg.Lookup)
-	qso := ui.NewQSO(yPos, c.Theme(), lookup, rig)
+	qso := ui.NewQSO(yPos, c.Theme(), lookup, cfg.Operator.CustomFields, rig)
 	c.AddWidget(qso)
 	yPos += qso.Height()
 	remainingHeight -= qso.Height()

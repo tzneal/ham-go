@@ -163,6 +163,7 @@ func main() {
 	alog.SetHeader(adif.MyState, cfg.Operator.State)
 	alog.SetHeader(adif.MyCounty, cfg.Operator.County)
 	alog.SetHeader(adif.MyCountry, cfg.Operator.Country)
+	alog.SetHeader(adif.Operator, cfg.Operator.Call)
 
 	logRepo, _ := git.PlainOpenWithOptions(logDir, &git.PlainOpenOptions{DetectDotGit: true})
 	var bookmarks *ham.Bookmarks

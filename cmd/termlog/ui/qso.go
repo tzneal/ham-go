@@ -41,11 +41,19 @@ type QSO struct {
 	entity           *ComboBox
 	operatorLocation *maidenhead.Point
 
-	rig *rig.RigCache
+	rig    *rig.RigCache
+	custom []CustomField
+}
+type CustomField struct {
+	Name    string
+	Label   string
+	Width   int
+	editor  *TextEdit
+	Default string
 }
 
 // NewQSO constructs a new QSO editor
-func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *rig.RigCache) *QSO {
+func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, customFields []CustomField, rig *rig.RigCache) *QSO {
 	// call sign
 	pc := NewPanelController(theme)
 	x := 0
@@ -162,7 +170,18 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *rig.RigCache) *
 	pc.AddWidget(NewLabel(x, yPos+4, "Notes"))
 	notes := NewTextEdit(x, yPos+5)
 	notes.SetWidth(40)
+	x += 41
 	pc.AddWidget(notes)
+
+	for i := 0; i < len(customFields); i++ {
+		f := &customFields[i]
+		pc.AddWidget(NewLabel(x, yPos+4, f.Label))
+		te := NewTextEdit(x, yPos+5)
+		te.SetWidth(f.Width)
+		pc.AddWidget(te)
+		f.editor = te
+		x += f.Width + 1
+	}
 
 	qso := &QSO{
 		yPos:      yPos,
@@ -185,6 +204,7 @@ func NewQSO(yPos int, theme Theme, lookup callsigns.Lookup, rig *rig.RigCache) *
 		date:      date,
 		time:      time,
 		notes:     notes,
+		custom:    customFields,
 	}
 
 	if freq != nil {
@@ -264,6 +284,9 @@ func (q *QSO) SetDefaults() {
 	q.stx.SetValue("")
 	q.entity.SetSelected("")
 	q.notes.SetValue("")
+	for _, f := range q.custom {
+		f.editor.SetValue(f.Default)
+	}
 	q.date.SetValue(adif.NowUTCDate())
 	q.time.SetValue(adif.NowUTCTime())
 }
@@ -440,6 +463,15 @@ func (q *QSO) GetRecord() adif.Record {
 			Value: q.notes.Value(),
 		})
 
+	// save any custom fields
+	for _, f := range q.custom {
+		record = append(record,
+			adif.Field{
+				Name:  adif.Identifier(f.Name),
+				Value: f.editor.Value(),
+			})
+	}
+
 	// add a distance value computed from the grid locations
 	if q.grid.Value() != "" && q.operatorLocation != nil {
 		otherLoc, err := maidenhead.ParseLocator(q.grid.Value())
@@ -478,6 +510,9 @@ func (q *QSO) SetRecord(r adif.Record) {
 	q.time.SetValue(r.Get(adif.TimeOn))
 	q.date.SetValue(r.Get(adif.QSODateStart))
 	q.notes.SetValue(r.Get(adif.Notes))
+	for _, f := range q.custom {
+		f.editor.SetValue(r.Get(adif.Identifier(f.Name)))
+	}
 }
 
 func (q *QSO) SetOperatorGrid(grid string) {

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/BurntSushi/toml"
+
 	"github.com/tzneal/ham-go/callsigns"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 )
@@ -23,6 +24,7 @@ type Operator struct {
 	GitKey             string
 	DateBasedLogging   bool
 	DateBasedLogFormat string
+	CustomFields       []ui.CustomField
 	Commands           []ui.Command
 }
 
@@ -99,6 +101,12 @@ func NewConfig() *Config {
 	cfg.Operator.Commands = append(cfg.Operator.Commands, ui.Command{
 		Name:    "Create Empty File",
 		Command: "touch /tmp/command_executed.txt",
+	})
+	cfg.Operator.CustomFields = append(cfg.Operator.CustomFields, ui.CustomField{
+		Label:   "SOTA",
+		Name:    "sota_ref",
+		Default: "",
+		Width:   8,
 	})
 	cfg.WSJTX.Address = "127.0.0.1:2237"
 	cfg.FLLog.Address = "127.0.0.1:8421"
