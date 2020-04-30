@@ -32,6 +32,7 @@ func main() {
 	logOverride := flag.String("log", "", "specify a log file to load and write to")
 	keyTest := flag.Bool("key-test", false, "list keyboard events")
 	upgradeConfig := flag.Bool("upgrade-config", false, "upgrade the configuration file to the latest format")
+	syncLOTWQSQL := flag.Bool("sync-lotw-qsl", false, "fetches QSL information from LoTW to update logs in the default log directory")
 	config := flag.String("config", "~/.termlog.toml", "path to the configuration file")
 	flag.Parse()
 
@@ -70,6 +71,13 @@ func main() {
 			log.Fatalf("unable to upgrade config file %s: %s", *config, err)
 		}
 		fmt.Println("config file upgraded")
+		return
+	}
+
+	if *syncLOTWQSQL {
+		if err := SyncLOTWQSL(cfg); err != nil {
+			log.Print("error syncing LoTW QSLs: %s", err)
+		}
 		return
 	}
 

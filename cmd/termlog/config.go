@@ -20,6 +20,8 @@ type Operator struct {
 	State              string
 	Country            string
 	Logdir             string // directory to store logs
+	LOTWUsername       string
+	LOTWPassword       string
 	GitPushAfterCommit bool
 	GitKey             string
 	DateBasedLogging   bool

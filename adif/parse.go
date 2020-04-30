@@ -97,6 +97,10 @@ lfor:
 				}
 				field, err := p.readField()
 				if err != nil {
+					// Detect the LOTW EOF
+					if errors.Is(err, io.EOF) {
+						return log, nil
+					}
 					return nil, err
 				}
 				record = append(record, field)
@@ -162,6 +166,13 @@ func (p *parser) readField() (Field, error) {
 	p.read() // l angle
 	// read the name
 	name := p.accept(tokenOther)
+
+	// LOTW sends an invalid EOF field that we have to
+	// support
+	if name == "APP_LoTW_EOF" {
+		return Field{}, io.EOF
+	}
+
 	if p.peek().token != tokenColon {
 		return Field{}, errors.New("expected colon after name")
 	}
@@ -169,6 +180,9 @@ func (p *parser) readField() (Field, error) {
 
 	// length
 	numberStr := p.acceptIf(func(t Node) bool {
+		if len(t.s) == 0 {
+			return true
+		}
 		return t.s[0] >= '0' && t.s[0] <= '9'
 	})
 	number, err := strconv.ParseInt(numberStr, 10, 64)
