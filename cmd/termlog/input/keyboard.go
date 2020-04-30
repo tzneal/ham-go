@@ -55,6 +55,8 @@ const (
 	KeyAltB
 	KeyAltRight
 	KeyAltLeft
+	KeyPageDown
+	KeyPageUp
 	keyLastKey
 )
 
@@ -164,7 +166,18 @@ func parse4(d []byte) Key {
 				case 0x7E:
 					return KeyDelete
 				}
+			case 0x35:
+				switch d[3] {
+				case 0x7e:
+					return KeyPageUp
+				}
+			case 0x36:
+				switch d[3] {
+				case 0x7e:
+					return KeyPageDown
+				}
 			}
+
 		}
 	}
 	return KeyUnknown

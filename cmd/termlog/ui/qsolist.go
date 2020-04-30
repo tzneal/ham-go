@@ -108,7 +108,13 @@ func (q *QSOList) Redraw() {
 			label:       "Notes",
 			field:       adif.Notes,
 			backupField: adif.Comment,
-			width:       40,
+			width:       20,
+		},
+		{
+			label:       "QSL",
+			field:       adif.QSLReceived,
+			backupField: adif.LOTWReceived,
+			width:       1,
 		},
 	}
 
@@ -224,6 +230,15 @@ func (q *QSOList) HandleEvent(key input.Key) {
 				q.offset++
 			}
 		}
+	case input.KeyPageDown:
+		for i := 0; i < q.maxLines; i++ {
+			q.HandleEvent(input.KeyArrowDown)
+		}
+	case input.KeyPageUp:
+		for i := 0; i < q.maxLines; i++ {
+			q.HandleEvent(input.KeyArrowUp)
+		}
+
 	case input.KeyDelete:
 		if q.selected >= 0 && q.selected < len(q.log.Records) {
 			rec := q.SelectedRecord()

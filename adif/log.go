@@ -38,7 +38,7 @@ func NewLog() *Log {
 		})
 	return l
 }
-func (l Log) Write(w io.Writer) {
+func (l Log) Write(w io.Writer) error {
 	for _, f := range l.Header {
 		f.Write(w)
 	}
@@ -47,6 +47,7 @@ func (l Log) Write(w io.Writer) {
 	for _, f := range l.Records {
 		f.Write(w)
 	}
+	return nil
 }
 
 func (l *Log) SetHeader(key Identifier, value string) {

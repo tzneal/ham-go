@@ -2,18 +2,68 @@
 
 package input
 
-import "fmt"
+import "strconv"
+
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[KeyCtrlA-1]
+	_ = x[KeyCtrlB-2]
+	_ = x[KeyCtrlC-3]
+	_ = x[KeyCtrlD-4]
+	_ = x[KeyCtrlE-5]
+	_ = x[KeyCtrlF-6]
+	_ = x[KeyCtrlG-7]
+	_ = x[KeyBackspace-8]
+	_ = x[KeyCtrlH-8]
+	_ = x[KeyTab-9]
+	_ = x[KeyCtrlI-9]
+	_ = x[KeyCtrlJ-10]
+	_ = x[KeyCtrlK-11]
+	_ = x[KeyCtrlL-12]
+	_ = x[KeyEnter-13]
+	_ = x[KeyCtrlM-13]
+	_ = x[KeyCtrlN-14]
+	_ = x[KeyCtrlO-15]
+	_ = x[KeyCtrlP-16]
+	_ = x[KeyCtrlQ-17]
+	_ = x[KeyCtrlR-18]
+	_ = x[KeyCtrlS-19]
+	_ = x[KeyCtrlT-20]
+	_ = x[KeyCtrlU-21]
+	_ = x[KeyCtrlV-22]
+	_ = x[KeyCtrlW-23]
+	_ = x[KeyCtrlX-24]
+	_ = x[KeyCtrlY-25]
+	_ = x[KeyCtrlZ-26]
+	_ = x[KeyEscape-27]
+	_ = x[KeyBackspace2-127]
+	_ = x[KeyUnknown-287]
+	_ = x[KeyShiftTab-288]
+	_ = x[KeyDelete-289]
+	_ = x[KeyArrowUp-290]
+	_ = x[KeyArrowDown-291]
+	_ = x[KeyArrowLeft-292]
+	_ = x[KeyArrowRight-293]
+	_ = x[KeyAltEnter-294]
+	_ = x[KeyAltB-295]
+	_ = x[KeyAltRight-296]
+	_ = x[KeyAltLeft-297]
+	_ = x[KeyPageDown-298]
+	_ = x[KeyPageUp-299]
+	_ = x[keyLastKey-300]
+}
 
 const (
 	_Key_name_0 = "KeyCtrlAKeyCtrlBKeyCtrlCKeyCtrlDKeyCtrlEKeyCtrlFKeyCtrlGKeyBackspaceKeyTabKeyCtrlJKeyCtrlKKeyCtrlLKeyEnterKeyCtrlNKeyCtrlOKeyCtrlPKeyCtrlQKeyCtrlRKeyCtrlSKeyCtrlTKeyCtrlUKeyCtrlVKeyCtrlWKeyCtrlXKeyCtrlYKeyCtrlZKeyEscape"
 	_Key_name_1 = "KeyBackspace2"
-	_Key_name_2 = "KeyUnknownKeyShiftTabKeyDeleteKeyArrowUpKeyArrowDownKeyArrowLeftKeyArrowRightKeyAltEnterKeyAltBKeyAltRightKeyAltLeftkeyLastKey"
+	_Key_name_2 = "KeyUnknownKeyShiftTabKeyDeleteKeyArrowUpKeyArrowDownKeyArrowLeftKeyArrowRightKeyAltEnterKeyAltBKeyAltRightKeyAltLeftKeyPageDownKeyPageUpkeyLastKey"
 )
 
 var (
 	_Key_index_0 = [...]uint8{0, 8, 16, 24, 32, 40, 48, 56, 68, 74, 82, 90, 98, 106, 114, 122, 130, 138, 146, 154, 162, 170, 178, 186, 194, 202, 210, 219}
-	_Key_index_1 = [...]uint8{0, 13}
-	_Key_index_2 = [...]uint8{0, 10, 21, 30, 40, 52, 64, 77, 88, 95, 106, 116, 126}
+	_Key_index_2 = [...]uint8{0, 10, 21, 30, 40, 52, 64, 77, 88, 95, 106, 116, 127, 136, 146}
 )
 
 func (i Key) String() string {
@@ -23,10 +73,10 @@ func (i Key) String() string {
 		return _Key_name_0[_Key_index_0[i]:_Key_index_0[i+1]]
 	case i == 127:
 		return _Key_name_1
-	case 287 <= i && i <= 298:
+	case 287 <= i && i <= 300:
 		i -= 287
 		return _Key_name_2[_Key_index_2[i]:_Key_index_2[i+1]]
 	default:
-		return fmt.Sprintf("Key(%d)", i)
+		return "Key(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 }

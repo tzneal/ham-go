@@ -59,7 +59,7 @@ func SyncLOTWQSL(c *Config) error {
 	if err != nil {
 		return err
 	}
-	lc := logsync.NewLOTWClient(c.Operator.LOTWUsername, c.Operator.LOTWPassword)
+	lc := logsync.NewLOTWClient(c.Operator.LOTWUsername, c.Operator.LOTWPassword, c.Operator.LOTWtqslPath)
 	qsls, err := lc.QSLReport(earliestDate)
 	if err != nil {
 		return err

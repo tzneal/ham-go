@@ -1,8 +1,13 @@
 package logsync
 
 import (
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
 	"time"
 
 	"github.com/tzneal/ham-go/adif"
@@ -12,15 +17,22 @@ import (
 type LOTWClient struct {
 	username string
 	password string
+	tqslPath string
 }
 
-func NewLOTWClient(username, password string) *LOTWClient {
+var ErrNoRecordsUploaded = errors.New("No records to upload")
+
+// NewLOTWClient constructs a new LOTW client that can fetch QSLs using the REST API and upload
+// signed QSLs using the tqsl command
+func NewLOTWClient(username, password string, tqslPath string) *LOTWClient {
 	return &LOTWClient{
 		username: username,
 		password: password,
+		tqslPath: tqslPath,
 	}
 }
 
+// QSLReport fetches the LOTW QSLs that have been submitted since the time given
 func (c LOTWClient) QSLReport(since time.Time) (*adif.Log, error) {
 	u, err := url.Parse("https://lotw.arrl.org/lotwuser/lotwreport.adi")
 	if err != nil {
@@ -45,4 +57,39 @@ func (c LOTWClient) QSLReport(since time.Time) (*adif.Log, error) {
 	r := util.NewSkipReader(rsp.Body, []byte("<PROGRAMID"))
 
 	return adif.Parse(r)
+}
+
+// UploadQSOs uploads a batch of QSOs to LOTW using the tqsl command
+func (c LOTWClient) UploadQSOs(records []adif.Record) error {
+	alog := adif.NewLog()
+	alog.Records = append(alog.Records, records...)
+	tf, err := ioutil.TempFile("", "lotwupload")
+	if err != nil {
+		return err
+	}
+	alog.Normalize()
+	if err := alog.Write(tf); err != nil {
+		return err
+	}
+	tf.Close()
+	defer os.Remove(tf.Name())
+
+	cmd := exec.Command(c.tqslPath, "-a", "compliant", // don't send duplicates
+		"--nodate", // don't ask about dates
+		"--upload", // upload
+		"--batch",  // and exit
+		tf.Name(),
+	)
+
+	op, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error running tqsl: %s %s", err, string(op))
+	}
+
+	return nil
+}
+
+// UploadQSOs uploads a single QSO to LOTW using the tqsl command
+func (c LOTWClient) UploadQSO(record adif.Record) error {
+	return c.UploadQSOs([]adif.Record{record})
 }

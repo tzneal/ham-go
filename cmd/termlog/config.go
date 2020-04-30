@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 
 	"github.com/BurntSushi/toml"
 
@@ -20,8 +21,10 @@ type Operator struct {
 	State              string
 	Country            string
 	Logdir             string // directory to store logs
+	LOTWAutoUpload     bool
 	LOTWUsername       string
 	LOTWPassword       string
+	LOTWtqslPath       string
 	GitPushAfterCommit bool
 	GitKey             string
 	DateBasedLogging   bool
@@ -117,6 +120,13 @@ func NewConfig() *Config {
 		Default: "",
 		Width:   8,
 	})
+	// find tqsl on the user's path
+	tqslPath, err := exec.LookPath("tqsl")
+	if err != nil {
+		tqslPath = "/usr/local/bin/tqsl"
+	}
+
+	cfg.Operator.LOTWtqslPath = tqslPath
 	cfg.WSJTX.Address = "127.0.0.1:2237"
 	cfg.FLLog.Address = "127.0.0.1:8421"
 

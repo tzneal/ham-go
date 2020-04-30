@@ -22,6 +22,7 @@ func NewBookmarkList(yPos int, bm *ham.Bookmarks, maxLines int, theme Theme) *Bo
 	b.src = b
 	b.bookmarks = bm
 	b.drawOutline = true
+	b.title = "Bookmarks"
 	return b
 }
 

@@ -23,8 +23,10 @@ import (
 	"github.com/tzneal/ham-go/cmd/termlog/input"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 	"github.com/tzneal/ham-go/db"
+	"github.com/tzneal/ham-go/dxcc"
 	"github.com/tzneal/ham-go/dxcluster"
 	"github.com/tzneal/ham-go/fldigi"
+	"github.com/tzneal/ham-go/logsync"
 	"github.com/tzneal/ham-go/pota"
 	"github.com/tzneal/ham-go/rig"
 	"github.com/tzneal/ham-go/wsjtx"
@@ -44,7 +46,13 @@ type mainScreen struct {
 	d          *db.Database
 	editingQSO bool // are we editing a QSO, or creating a new one?
 	messages   *ui.Messages
+	toBeLogged chan logRequest
 	shutdown   chan struct{}
+	lookup     callsigns.Lookup
+}
+type logRequest struct {
+	record   adif.Record
+	external bool
 }
 
 // used to accept log writes
@@ -103,13 +111,13 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		if rig != nil {
 			spotlist.OnTune(func(f float64) {
 				f = f * 1e6
-				rig.SetFreq(goHamlib.VFOCurrent, f)
 				// ensure we are in the proper mode
 				if f < 10000000 {
 					rig.SetMode(goHamlib.VFOCurrent, goHamlib.ModeLSB, 0)
 				} else {
 					rig.SetMode(goHamlib.VFOCurrent, goHamlib.ModeUSB, 0)
 				}
+				rig.SetFreq(goHamlib.VFOCurrent, f)
 			})
 		}
 		c.AddWidget(spotlist)
@@ -244,9 +252,13 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		messages:   msgs,
 		bookmarks:  bookmarks,
 		editingQSO: false,
+		lookup:     lookup,
 		d:          d,
 		shutdown:   shutdown,
+		toBeLogged: make(chan logRequest),
 	}
+
+	go ms.logRoutine()
 
 	log.SetFlags(0)
 	log.SetOutput(ms)
@@ -292,6 +304,51 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	return ms
 }
 
+// logRoutine accepts QSOs, looks up additional informatin, logs to LoTW, etc. before logging them
+// to a file
+func (m *mainScreen) logRoutine() {
+	for {
+		select {
+		case <-m.shutdown:
+			return
+		case rec := <-m.toBeLogged:
+
+			// perform lookup on external submitted QSOs (e.g. from WSJT-X)
+			if rec.external {
+				rsp, err := m.lookup.Lookup(rec.record.Get(adif.Call))
+				if err == nil {
+					if rsp.Name != nil && rec.record.Get(adif.Name) == "" {
+						rec.record = append(rec.record, adif.Field{Name: adif.Name, Value: *rsp.Name})
+					}
+					if rsp.Grid != nil && rec.record.Get(adif.GridSquare) == "" {
+						rec.record = append(rec.record, adif.Field{Name: adif.GridSquare, Value: *rsp.Grid})
+					}
+					if rsp.Country != nil {
+						rec.record = append(rec.record, adif.Field{Name: adif.Country, Value: *rsp.Country})
+
+						ent, err := dxcc.LookupEntity(*rsp.Country)
+						if err == nil {
+							rec.record = append(rec.record,
+								adif.Field{
+									Name:  adif.DXCC,
+									Value: strconv.FormatInt(int64(ent.DXCC), 10),
+								})
+						}
+					}
+				}
+			}
+			// upload to LoTW?
+			if m.cfg.Operator.LOTWAutoUpload {
+				// possibly adds new fields if successful
+				rec.record = m.logToLOTW(rec.record)
+			}
+
+			m.alog.Records = append(m.alog.Records, rec.record)
+			m.alog.Save()
+
+		}
+	}
+}
 func (m *mainScreen) exportCabrillo() {
 	exportFilename, ok := ui.InputString(m.controller, "Enter Export Filename")
 	if !ok {
@@ -563,8 +620,8 @@ func (m *mainScreen) saveQSO() {
 			m.alog.Records[idx] = rec
 			m.alog.Save()
 		} else {
-			m.alog.Records = append(m.alog.Records, rec)
-			m.alog.Save()
+			m.toBeLogged <- logRequest{record: rec.Copy()}
+
 			m.qso.SetDefaults()
 			m.controller.Focus(m.qso)
 		}
@@ -615,8 +672,7 @@ func (m *mainScreen) Tick() bool {
 					m.logErrorf("error converting QSO: %s", err)
 				} else {
 					m.logInfo("received QSO from WSJT-X: %s %s", arec.Get(adif.Call), arec.Get(adif.AMode))
-					m.alog.Records = append(m.alog.Records, arec)
-					m.alog.Save()
+					m.toBeLogged <- logRequest{record: arec, external: true}
 				}
 			}
 		default:
@@ -628,8 +684,9 @@ func (m *mainScreen) Tick() bool {
 			rdr := strings.NewReader("<eoh>\n" + rec)
 			alog, err := adif.Parse(rdr)
 			if err == nil && len(alog.Records) == 1 {
-				m.alog.Records = append(m.alog.Records, alog.Records[0])
-				m.alog.Save()
+				arec := alog.Records[0]
+				m.logInfo("received QSO from fldigi: %s %s", arec.Get(adif.Call), arec.Get(adif.AMode))
+				m.toBeLogged <- logRequest{record: arec, external: true}
 			}
 
 		default:
@@ -706,6 +763,24 @@ lfor:
 			pc.HandleEvent(ev)
 		}
 	}
+}
+
+func (m *mainScreen) logToLOTW(rec adif.Record) adif.Record {
+	lc := logsync.NewLOTWClient(m.cfg.Operator.LOTWUsername, m.cfg.Operator.LOTWPassword, m.cfg.Operator.LOTWtqslPath)
+	if err := lc.UploadQSO(rec); err != nil {
+		m.logErrorf("error uploading LoTW QSO: %s", err)
+	} else {
+		m.logInfo("sent %s QSO to LoTW", rec.Get(adif.Call))
+		rec = append(rec, adif.Field{
+			Name:  adif.LOTWSent,
+			Value: "Y",
+		})
+		rec = append(rec, adif.Field{
+			Name:  adif.LOTWSentDate,
+			Value: time.Now().Format("20060102"),
+		})
+	}
+	return rec
 }
 
 func convertToADIF(msg *wsjtx.QSOLogged) (adif.Record, error) {

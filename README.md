@@ -13,6 +13,7 @@ features I need/want.
 - DX cluster & POTA spot monitoring
 - Radio control through hamlib (github.com/dh1tw/goHamlib)
 - Logs for both WSJT-X and fldigi
+- LoTW integration (syncs QSL information from LoTW to stored ADIF files)
 
 ## Installation
 
@@ -36,6 +37,31 @@ configuration and can be removed if not needed.
     Label = "SOTA"
     Width = 8
     Default = ""
+```
+
+# Command line options
+```
+Usage of ./termlog:
+  -color-test
+    	display a color test
+  -config string
+    	path to the configuration file (default "~/.termlog.toml")
+  -hamlib-list
+    	list the supported libhamlib devices
+  -index
+    	index the ADIF files passed in on the command line
+  -key-test
+    	list keyboard events
+  -log string
+    	specify a log file to load and write to
+  -no-rig
+    	disable rig control, even if enabled in the config file
+  -search string
+    	search the indexed ADIF files and print the results
+  -sync-lotw-qsl
+    	fetches QSL information from LoTW to update log QSL information in the default log directory
+  -upgrade-config
+    	upgrade the configuration file to the latest format
 ```
 
 # Commands

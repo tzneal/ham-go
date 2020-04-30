@@ -52,3 +52,11 @@ func (r Record) IsValid() bool {
 	}
 	return true
 }
+
+func (r Record) Copy() Record {
+	ret := Record{}
+	for _, v := range r {
+		ret = append(ret, v)
+	}
+	return ret
+}
