@@ -174,7 +174,7 @@ func (p *parser) readField() (Field, error) {
 	}
 
 	if p.peek().token != tokenColon {
-		return Field{}, errors.New("expected colon after name")
+		return Field{}, fmt.Errorf("expected colon after name: %s", name)
 	}
 	p.read() // consume the colon
 

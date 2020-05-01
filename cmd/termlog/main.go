@@ -80,7 +80,7 @@ func main() {
 
 	if *syncLOTWQSQL {
 		if err := SyncLOTWQSL(cfg); err != nil {
-			log.Print("error syncing LoTW QSLs: %s", err)
+			log.Printf("error syncing LoTW QSLs: %s", err)
 		}
 		return
 	}
