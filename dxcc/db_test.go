@@ -13,24 +13,16 @@ func TestLookup(t *testing.T) {
 		entity string
 	}{
 		{
-			call:   "OR4TN",
-			entity: "Antarctica",
+			call:   "W4TNL",
+			entity: "United States",
 		},
 		{
-			call:   "MR6TMS",
-			entity: "Scotland",
+			call:   "DG2KM",
+			entity: "Fed. Rep. of Germany",
 		},
 		{
-			call:   "LW7DQQ/Y",
-			entity: "Argentina",
-		},
-		{
-			call:   "UI9XA",
-			entity: "European Russia",
-		},
-		{
-			call:   "ZS85SARL",
-			entity: "South Africa",
+			call:   "VE2SPEED",
+			entity: "Canada",
 		},
 	}
 	for _, tc := range testData {
@@ -43,11 +35,4 @@ func TestLookup(t *testing.T) {
 		}
 	}
 
-}
-
-func TestLookupOverride(t *testing.T) {
-	ent, _ := dxcc.Lookup("OR4TN")
-	if ent.CQZone != 38 {
-		t.Errorf("expected cqzone=38, got %d", ent.CQZone)
-	}
 }
