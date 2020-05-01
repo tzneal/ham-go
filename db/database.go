@@ -8,7 +8,7 @@ import (
 
 	"github.com/tzneal/ham-go/adif"
 
-	bolt "github.com/coreos/bbolt"
+	bolt "go.etcd.io/bbolt"
 )
 
 type Database struct {
