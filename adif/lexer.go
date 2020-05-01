@@ -27,6 +27,7 @@ const formula_error int = -1
 const formula_en_main int = 4
 
 //line lexer.rl:40
+
 func (l *Lexer) lex(r io.Reader) {
 	cs, p, pe := 0, 0, 0
 	eof := -1
@@ -319,6 +320,7 @@ func (l *Lexer) lex(r io.Reader) {
 		}
 
 //line lexer.rl:79
+
 		if ts > 0 {
 			// currently parsing a token, so shift it to the
 			// beginning of the buffer
