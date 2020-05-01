@@ -86,7 +86,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 
 	// default to a size
 	qsoHeight := 12
-	msgHeight := 4
+	msgHeight := 5
 
 	// but fill the screen if the spotting is disbled
 	if !cfg.DXCluster.Enabled && !cfg.POTASpot.Enabled {
@@ -293,6 +293,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 
 	log.SetFlags(0)
 	log.SetOutput(ms)
+	goHamlib.SetDebugCallback(ms.handleHamlibDebug)
 
 	qsoList.OnSelect(func(r adif.Record) {
 		if !qso.HasRig() {
@@ -817,6 +818,15 @@ func (m *mainScreen) logToLOTW(rec adif.Record) adif.Record {
 		})
 	}
 	return rec
+}
+
+func (m *mainScreen) handleHamlibDebug(level goHamlib.DebugLevel, msg string) {
+	switch level {
+	case goHamlib.DebugWarn, goHamlib.DebugErr, goHamlib.DebugBug:
+		m.logErrorf("hamlib error: %s", msg)
+	case goHamlib.DebugTrace, goHamlib.DebugVerbose:
+		m.logInfo("hamlib: %s", msg)
+	}
 }
 
 func convertToADIF(msg *wsjtx.QSOLogged) (adif.Record, error) {

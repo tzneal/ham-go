@@ -52,6 +52,7 @@ func (d *SpottingList) AddSpot(msg SpotRecord) {
 	msg.Comment = strings.TrimSpace(msg.Comment)
 	msg.Location = strings.TrimSpace(msg.Location)
 	msg.Station = strings.TrimSpace(msg.Station)
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	updated := false
@@ -124,7 +125,11 @@ func (d *SpottingList) Redraw() {
 			xPos += 5
 			DrawText(xPos, curLine, spot.Time.Format("15:04"), fg, bg)
 			xPos += 6
-			DrawText(xPos, curLine, strconv.FormatFloat(spot.Frequency, 'f', -1, 64), fg, bg)
+			freqStr := strconv.FormatFloat(spot.Frequency, 'f', 2, 64)
+			if strings.HasSuffix(freqStr, ".00") {
+				freqStr = freqStr[0 : len(freqStr)-3]
+			}
+			DrawText(xPos, curLine, freqStr, fg, bg)
 			xPos += 10
 			DrawText(xPos, curLine, trunc(spot.Station, 11), fg, bg)
 			xPos += 12
