@@ -87,6 +87,7 @@ type Config struct {
 	SOTASpot  SOTASpot
 	Theme     ui.Theme
 	Label     []Label
+	noNet     bool // lowercase, so it shouldn't be serialized
 }
 
 // SaveAs saves a config file to disk.

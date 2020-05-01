@@ -78,7 +78,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	yPos++
 	remainingHeight--
 
-	lookup := callsigns.BuildLookup(cfg.Lookup)
+	lookup := callsigns.BuildLookup(cfg.Lookup, cfg.noNet)
 	qso := ui.NewQSO(yPos, c.Theme(), lookup, cfg.Operator.CustomFields, rig)
 	c.AddWidget(qso)
 	yPos += qso.Height()
@@ -103,7 +103,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 
 	// is the spot monitoring enabled?
 	shutdown := make(chan struct{})
-	if cfg.DXCluster.Enabled || cfg.POTASpot.Enabled {
+	if !cfg.noNet && (cfg.DXCluster.Enabled || cfg.POTASpot.Enabled) {
 		// create the UI
 		dxHeight := remainingHeight - 1 - msgHeight // -1 due to status bar
 		spotlist := ui.NewSpottingList(yPos, dxHeight, time.Duration(cfg.Operator.SpotExpiration)*time.Second, cfg.Theme)
@@ -206,7 +206,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 						}
 						spotlist.AddSpot(ui.SpotRecord{
 							Source:    "SOTA",
-							Frequency: freq,
+							Frequency: freq * 1e3,
 							Station:   spot.ActivatorCallsign,
 							Comment:   spot.Comments,
 							Time:      tm.Local(),
@@ -304,15 +304,20 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	if cfg.WSJTX.Enabled {
 		wsjtxLog, err := wsjtx.NewServer(cfg.WSJTX.Address)
 		if err != nil {
-			log.Fatalf("error launching WSJTx server: %s", err)
+			ms.logErrorf("error launching WSJTx server: %s", err)
+		} else {
+			ms.logInfo("accepting logs from WSJT-X at %s", cfg.WSJTX.Address)
+			ms.wsjtxLog = wsjtxLog
+			ms.wsjtxLog.Run()
 		}
-		ms.wsjtxLog = wsjtxLog
-		ms.wsjtxLog.Run()
 	}
 
 	if cfg.FLLog.Enabled {
 		fldigiLog, err := fldigi.NewServer(cfg.FLLog.Address)
-		if err == nil {
+		if err != nil {
+			ms.logErrorf("error launching fldigi server: %s", err)
+		} else {
+			ms.logInfo("accepting logs from fldigi at %s", cfg.FLLog.Address)
 			ms.fldigiLog = fldigiLog
 			ms.fldigiLog.Run()
 		}
@@ -369,7 +374,7 @@ func (m *mainScreen) logRoutine() {
 				}
 			}
 			// upload to LoTW?
-			if m.cfg.Operator.LOTWAutoUpload {
+			if !m.cfg.noNet && m.cfg.Operator.LOTWAutoUpload {
 				// possibly adds new fields if successful
 				rec.record = m.logToLOTW(rec.record)
 			}

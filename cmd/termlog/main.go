@@ -29,11 +29,13 @@ func main() {
 	search := flag.String("search", "", "search the indexed ADIF files and print the results")
 	hamlibList := flag.Bool("hamlib-list", false, "list the supported libhamlib devices")
 	noRig := flag.Bool("no-rig", false, "disable rig control, even if enabled in the config file")
+	noNet := flag.Bool("no-net", false, "disable all features that require network access (useful for POTA/SOTA)")
 	logOverride := flag.String("log", "", "specify a log file to load and write to")
 	keyTest := flag.Bool("key-test", false, "list keyboard events")
 	upgradeConfig := flag.Bool("upgrade-config", false, "upgrade the configuration file to the latest format")
 	syncLOTWQSQL := flag.Bool("sync-lotw-qsl", false, "fetches QSL information from LoTW to update log QSL information in the default log directory")
 	config := flag.String("config", "~/.termlog.toml", "path to the configuration file")
+
 	flag.Parse()
 
 	if *colorTest {
@@ -65,6 +67,8 @@ func main() {
 			log.Fatalf("unable to create config file %s: %s", *config, err)
 		}
 	}
+
+	cfg.noNet = *noNet
 
 	if *upgradeConfig {
 		if err = cfg.SaveAs(*config); err != nil {

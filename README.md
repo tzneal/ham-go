@@ -54,6 +54,8 @@ Usage of ./termlog:
     	list keyboard events
   -log string
     	specify a log file to load and write to
+  -no-net
+    	disable all features that require network access (useful for POTA/SOTA)
   -no-rig
     	disable rig control, even if enabled in the config file
   -search string

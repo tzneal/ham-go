@@ -127,3 +127,7 @@ func (h *hamqth) Lookup(call string) (*callsigns.Response, error) {
 	}
 	return cs, nil
 }
+
+func (h *hamqth) RequiresNetwork() bool {
+	return true
+}

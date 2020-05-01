@@ -22,6 +22,10 @@ func NewCallookInfo(cfg callsigns.LookupConfig) callsigns.Lookup {
 	return &callook{}
 }
 
+func (c *callook) RequiresNetwork() bool {
+	return true
+}
+
 func (c *callook) Lookup(call string) (*callsigns.Response, error) {
 	if len(call) < 2 {
 		return nil, errors.New("invalid callsign")

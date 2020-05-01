@@ -40,3 +40,7 @@ func (c *dxc) Lookup(call string) (*callsigns.Response, error) {
 	}
 	return rsp, nil
 }
+
+func (c *dxc) RequiresNetwork() bool {
+	return false
+}

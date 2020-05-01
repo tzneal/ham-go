@@ -10,7 +10,10 @@ import (
 
 // Lookup is used to lookup a call sign via some method.
 type Lookup interface {
+	// Lookup looks up call sign information
 	Lookup(call string) (*Response, error)
+	// RequiresNetwork returns true if this lookup requires network access
+	RequiresNetwork() bool
 }
 
 // Response is a callsign lookup response.
