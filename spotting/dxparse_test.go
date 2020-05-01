@@ -1,14 +1,14 @@
-package dxcluster_test
+package spotting_test
 
 import (
 	"testing"
 
-	"github.com/tzneal/ham-go/dxcluster"
+	"github.com/tzneal/ham-go/spotting"
 )
 
-func TestParse(t *testing.T) {
+func TestDXClusterSpotParse(t *testing.T) {
 	inp := "DX de N6DBF:     21075.8  YV5MBI       FT8, -17 in Placentia, CA      2333Z DM13"
-	spot, err := dxcluster.Parse(inp)
+	spot, err := spotting.DXClusterParse(inp)
 	if err != nil {
 		t.Errorf("expected valid parse, got %s", err)
 	}

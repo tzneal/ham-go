@@ -1,4 +1,4 @@
-package dxcluster
+package spotting
 
 import (
 	"net"
@@ -9,36 +9,36 @@ import (
 	"github.com/tzneal/ham-go/dxcc"
 )
 
-// Client is a DX Cluster client
-type Client struct {
-	Spots chan Spot
+// DXClusterClient is a DX Cluster client
+type DXClusterClient struct {
+	Spots chan DXClusterSpot
 
-	config   Config
+	config   DXClusterConfig
 	shutdown chan struct{}
 	conn     net.Conn
 	curPos   int
 	buf      []byte
 }
 
-// Config is the DX Cluster client config
-type Config struct {
+// DXClusterConfig is the DX Cluster client config
+type DXClusterConfig struct {
 	Network    string
 	Address    string
 	Callsign   string
 	ZoneLookup bool
 }
 
-// NewClient constructs a new DX Cluster client
-func NewClient(cfg Config) *Client {
-	client := &Client{
+// NewDXClusterClient constructs a new DX Cluster client
+func NewDXClusterClient(cfg DXClusterConfig) *DXClusterClient {
+	client := &DXClusterClient{
 		config:   cfg,
-		Spots:    make(chan Spot),
+		Spots:    make(chan DXClusterSpot),
 		shutdown: make(chan struct{}),
 	}
 	return client
 }
 
-func (c *Client) isLoginPrompt(line string) bool {
+func (c *DXClusterClient) isLoginPrompt(line string) bool {
 	for _, p := range []string{"enter your call", "login:"} {
 		if strings.Contains(line, p) {
 			return true
@@ -47,7 +47,7 @@ func (c *Client) isLoginPrompt(line string) bool {
 	return false
 }
 
-func (c *Client) login(call string) {
+func (c *DXClusterClient) login(call string) {
 	try := 0
 	for {
 		try++
@@ -59,7 +59,7 @@ func (c *Client) login(call string) {
 	}
 }
 
-func (c *Client) readLine() (string, error) {
+func (c *DXClusterClient) readLine() (string, error) {
 	// try to return a line we've already got
 	for i := c.curPos; i < len(c.buf); i++ {
 		if c.buf[i] == '\n' {
@@ -93,17 +93,17 @@ func (c *Client) readLine() (string, error) {
 }
 
 // Close gracefully shuts down the client
-func (c *Client) Close() error {
+func (c *DXClusterClient) Close() error {
 	close(c.shutdown)
 	return c.conn.Close()
 }
 
 // Run is a non-blocking call that starts the client
-func (c *Client) Run() {
+func (c *DXClusterClient) Run() {
 	go c.run()
 }
 
-func (c *Client) run() {
+func (c *DXClusterClient) run() {
 	for {
 		select {
 		case <-c.shutdown:
@@ -132,7 +132,7 @@ func (c *Client) run() {
 				c.conn = nil
 				continue
 			}
-			spot, err := Parse(line)
+			spot, err := DXClusterParse(line)
 			if spot != nil && err == nil {
 				if c.config.ZoneLookup {
 					ent, ok := dxcc.Lookup(spot.Spotter)

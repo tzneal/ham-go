@@ -25,6 +25,7 @@ type SpottingList struct {
 	onTune     func(freq float64)
 	mu         sync.Mutex
 	dxSpots    []SpotRecord
+	expiration time.Duration
 }
 
 type SpotRecord struct {
@@ -36,11 +37,12 @@ type SpotRecord struct {
 	Location  string
 }
 
-func NewSpottingList(yPos int, maxLines int, theme Theme) *SpottingList {
+func NewSpottingList(yPos int, maxLines int, expiration time.Duration, theme Theme) *SpottingList {
 	ql := &SpottingList{
 		yPos:       yPos,
 		maxLines:   maxLines,
 		theme:      theme,
+		expiration: expiration,
 		maxEntries: 100,
 	}
 	return ql
@@ -79,6 +81,19 @@ func (d *SpottingList) AddSpot(msg SpotRecord) {
 		return !d.dxSpots[i].Time.After(d.dxSpots[j].Time)
 	})
 
+	// filter out any spots that are older than the expiration time
+	removeAfter := -1
+	expireTime := time.Now().Add(-d.expiration)
+	for i := 0; i < len(d.dxSpots); i++ {
+		if d.dxSpots[i].Time.After(expireTime) {
+			removeAfter = i
+			break
+		}
+	}
+	if removeAfter != -1 {
+		d.dxSpots = d.dxSpots[removeAfter:]
+	}
+
 	// possibly remove the oldest one
 	if len(d.dxSpots) > d.maxEntries {
 		copy(d.dxSpots, d.dxSpots[1:])
@@ -111,8 +126,8 @@ func (d *SpottingList) Redraw() {
 			xPos += 6
 			DrawText(xPos, curLine, strconv.FormatFloat(spot.Frequency, 'f', -1, 64), fg, bg)
 			xPos += 10
-			DrawText(xPos, curLine, spot.Station, fg, bg)
-			xPos += 10
+			DrawText(xPos, curLine, trunc(spot.Station, 11), fg, bg)
+			xPos += 12
 			DrawText(xPos, curLine, trunc(spot.Comment, 29), fg, bg)
 			xPos += 30
 			DrawText(xPos, curLine, spot.Location, fg, bg)

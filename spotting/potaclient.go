@@ -1,4 +1,4 @@
-package pota
+package spotting
 
 import (
 	"encoding/json"
@@ -7,21 +7,23 @@ import (
 	"time"
 )
 
-// Config is the DX Cluster client config
-type Config struct {
+const POTAURL = "https://api.pota.us/spot/activator"
+
+// POTAConfig is the POTA spotting client config
+type POTAConfig struct {
 	URL   string        // SPOT API url, defaults to https://api.pota.us/spot/activator
 	Delay time.Duration // Delay between SPOT checks, defaults to 60 seconds with a minimum of 60 seconds
 }
 
-// Client is a POTA spot client
-type Client struct {
-	Spots chan Spot
+// POTAClient is a POTA spot client
+type POTAClient struct {
+	Spots chan POTASpot
 
-	config   Config
+	config   POTAConfig
 	shutdown chan struct{}
 }
 
-type Spot struct {
+type POTASpot struct {
 	SpotID              uint64 `json:"spotId"`
 	Activator           string `json:"activator"`
 	Frequency           string `json:"frequency"`
@@ -39,39 +41,39 @@ type Spot struct {
 	// "invalid": null,
 }
 
-func (p *Spot) Time() (time.Time, error) {
+func (p *POTASpot) Time() (time.Time, error) {
 	return time.Parse("2006-01-02T15:04:05", p.SpotTime)
 }
 
-// NewClient constructs a new POTA client
-func NewClient(cfg Config) *Client {
+// NewPOTAClient constructs a new POTA client
+func NewPOTAClient(cfg POTAConfig) *POTAClient {
 	// enforce a minimum poll delay of once per minute
 	if cfg.Delay < 60*time.Second {
 		cfg.Delay = 60 * time.Second
 	}
 	if cfg.URL == "" {
-		cfg.URL = "https://api.pota.us/spot/activator"
+		cfg.URL = POTAURL
 	}
-	client := &Client{
+	client := &POTAClient{
 		config:   cfg,
-		Spots:    make(chan Spot),
+		Spots:    make(chan POTASpot),
 		shutdown: make(chan struct{}),
 	}
 	return client
 }
 
 // Close gracefully shuts down the client
-func (c *Client) Close() error {
+func (c *POTAClient) Close() error {
 	close(c.shutdown)
 	return nil
 }
 
 // Run is a non-blocking call that starts the client
-func (c *Client) Run() {
+func (c *POTAClient) Run() {
 	go c.run()
 }
 
-func (c *Client) run() {
+func (c *POTAClient) run() {
 	poll := func() bool {
 		req, err := http.NewRequest("GET", c.config.URL, nil)
 		if err != nil {
@@ -86,7 +88,7 @@ func (c *Client) run() {
 		}
 		dec := json.NewDecoder(rsp.Body)
 		defer rsp.Body.Close()
-		var result []Spot
+		var result []POTASpot
 		if err := dec.Decode(&result); err != nil {
 			log.Printf("error parsing POTA spot: %s", err)
 		}

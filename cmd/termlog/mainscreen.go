@@ -24,11 +24,10 @@ import (
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 	"github.com/tzneal/ham-go/db"
 	"github.com/tzneal/ham-go/dxcc"
-	"github.com/tzneal/ham-go/dxcluster"
 	"github.com/tzneal/ham-go/fldigi"
 	"github.com/tzneal/ham-go/logsync"
-	"github.com/tzneal/ham-go/pota"
 	"github.com/tzneal/ham-go/rig"
+	"github.com/tzneal/ham-go/spotting"
 	"github.com/tzneal/ham-go/wsjtx"
 )
 
@@ -89,7 +88,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	qsoHeight := 12
 	msgHeight := 4
 
-	// but fill the screen if the dxcluster is disbled
+	// but fill the screen if the spotting is disbled
 	if !cfg.DXCluster.Enabled && !cfg.POTASpot.Enabled {
 		// - 1 due to the status bar
 		qsoHeight = remainingHeight - 1 - msgHeight
@@ -107,7 +106,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	if cfg.DXCluster.Enabled || cfg.POTASpot.Enabled {
 		// create the UI
 		dxHeight := remainingHeight - 1 - msgHeight // -1 due to status bar
-		spotlist := ui.NewSpottingList(yPos, dxHeight, cfg.Theme)
+		spotlist := ui.NewSpottingList(yPos, dxHeight, time.Duration(cfg.Operator.SpotExpiration)*time.Second, cfg.Theme)
 		if rig != nil {
 			spotlist.OnTune(func(f float64) {
 				f = f * 1e6
@@ -124,13 +123,13 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		yPos += dxHeight
 
 		if cfg.DXCluster.Enabled {
-			dcfg := dxcluster.Config{
+			dcfg := spotting.DXClusterConfig{
 				Network:    "tcp",
 				Address:    fmt.Sprintf("%s:%d", cfg.DXCluster.Server, cfg.DXCluster.Port),
 				Callsign:   cfg.Operator.Call,
 				ZoneLookup: cfg.DXCluster.ZoneLookup,
 			}
-			dxclient := dxcluster.NewClient(dcfg)
+			dxclient := spotting.NewDXClusterClient(dcfg)
 			dxclient.Run()
 			go func() {
 				for {
@@ -156,10 +155,10 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 			}()
 		}
 		if cfg.POTASpot.Enabled {
-			pcfg := pota.Config{
+			pcfg := spotting.POTAConfig{
 				URL: cfg.POTASpot.URL,
 			}
-			pclient := pota.NewClient(pcfg)
+			pclient := spotting.NewPOTAClient(pcfg)
 			pclient.Run()
 			go func() {
 				for {
@@ -169,14 +168,46 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 					case spot := <-pclient.Spots:
 						freq, _ := strconv.ParseFloat(spot.Frequency, 64)
 						tm, _ := spot.Time()
-						location := spot.ParkName
+						location := spot.Reference + "/" + spot.ParkName
 						if spot.LocationDescription != "" {
-							location = fmt.Sprintf("%s/%s", spot.ParkName, spot.LocationDescription)
+							location = fmt.Sprintf("%s/%s/%s", spot.Reference, spot.ParkName, spot.LocationDescription)
 						}
 						spotlist.AddSpot(ui.SpotRecord{
 							Source:    "POTA",
 							Frequency: freq,
 							Station:   spot.Activator,
+							Comment:   spot.Comments,
+							Time:      tm.Local(),
+							Location:  location,
+						})
+						_ = spot
+					}
+				}
+			}()
+		}
+
+		if cfg.SOTASpot.Enabled {
+			pcfg := spotting.SOTAConfig{
+				URL: cfg.SOTASpot.URL,
+			}
+			pclient := spotting.NewSOTAClient(pcfg)
+			pclient.Run()
+			go func() {
+				for {
+					select {
+					case <-shutdown:
+						return
+					case spot := <-pclient.Spots:
+						freq, _ := strconv.ParseFloat(spot.Frequency, 64)
+						tm, _ := spot.Time()
+						location := spot.SummitCode
+						if spot.SummitDetails != "" {
+							location = fmt.Sprintf("%s/%s", spot.SummitCode, spot.SummitDetails)
+						}
+						spotlist.AddSpot(ui.SpotRecord{
+							Source:    "SOTA",
+							Frequency: freq,
+							Station:   spot.ActivatorCallsign,
 							Comment:   spot.Comments,
 							Time:      tm.Local(),
 							Location:  location,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/tzneal/ham-go/callsigns"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
+	"github.com/tzneal/ham-go/spotting"
 )
 
 // Operator is configuration info about the person operating the station.
@@ -29,6 +30,7 @@ type Operator struct {
 	GitKey             string
 	DateBasedLogging   bool
 	DateBasedLogFormat string
+	SpotExpiration     int
 	CustomFields       []ui.CustomField
 	Commands           []ui.Command
 }
@@ -59,6 +61,12 @@ type POTASpot struct {
 	URL     string
 }
 
+// SOTASpot allows enabled SOTA spot monitoring
+type SOTASpot struct {
+	Enabled bool
+	URL     string
+}
+
 // Label is a label that will be displayed when tuned to a particular frequency.
 // The start/end are the limits.
 type Label struct {
@@ -76,6 +84,7 @@ type Config struct {
 	Lookup    map[string]callsigns.LookupConfig
 	DXCluster DXCluster
 	POTASpot  POTASpot
+	SOTASpot  SOTASpot
 	Theme     ui.Theme
 	Label     []Label
 }
@@ -108,6 +117,7 @@ func NewConfig() *Config {
 	cfg := &Config{}
 	cfg.Operator.Logdir = "~/termlog/"
 	cfg.Operator.DateBasedLogFormat = "Jan_2006"
+	cfg.Operator.SpotExpiration = 900
 	cfg.Operator.GitPushAfterCommit = true
 	cfg.Operator.GitKey = "~/.ssh/id_rsa"
 	cfg.Operator.Commands = append(cfg.Operator.Commands, ui.Command{
@@ -150,7 +160,10 @@ func NewConfig() *Config {
 
 	// POTA
 	cfg.POTASpot.Enabled = true
-	cfg.POTASpot.URL = "https://api.pota.us/spot/activator"
+	cfg.POTASpot.URL = spotting.POTAURL
+
+	cfg.SOTASpot.Enabled = true
+	cfg.SOTASpot.URL = spotting.SOTAURL
 
 	// 160 meters
 	cfg.Label = append(cfg.Label, Label{

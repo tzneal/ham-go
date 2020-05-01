@@ -1,4 +1,4 @@
-package dxcluster
+package spotting
 
 import (
 	"errors"
@@ -8,8 +8,8 @@ import (
 	"unicode"
 )
 
-// Spot is a DX spot from a DX cluster
-type Spot struct {
+// DXClusterSpot is a DX spot from a DX cluster
+type DXClusterSpot struct {
 	Spotter   string
 	Frequency float64
 	DXStation string
@@ -25,8 +25,8 @@ func trim(s string) string {
 	})
 }
 
-// Parse parses a line of DX cluster output returning a spot if one could be found
-func Parse(line string) (*Spot, error) {
+// DXClusterParse parses a line of DX cluster output returning a spot if one could be found
+func DXClusterParse(line string) (*DXClusterSpot, error) {
 	// no error, but not a spot
 	if !strings.HasPrefix(line, "DX de") {
 		return nil, nil
@@ -41,7 +41,7 @@ func Parse(line string) (*Spot, error) {
 	dxStationIdx := 39
 	commentIdx := 70
 	timeIdx := 76
-	spot := &Spot{}
+	spot := &DXClusterSpot{}
 	spot.Spotter = strings.Trim(line[5:spotterIdx], " :")
 	freq, err := strconv.ParseFloat(strings.TrimSpace(line[spotterIdx:freqIdx]), 64)
 	if err != nil {
