@@ -383,6 +383,11 @@ func (m *mainScreen) logRoutine() {
 			m.alog.Records = append(m.alog.Records, rec.record)
 			m.alog.Save()
 
+			// index the QSO so we can quickly identify if we've seen it before
+			r, err := db.AdifToRecord(rec.record)
+			if err == nil {
+				m.d.AddRecord(r)
+			}
 		}
 	}
 }
@@ -661,10 +666,6 @@ func (m *mainScreen) saveQSO() {
 
 			m.qso.SetDefaults()
 			m.controller.Focus(m.qso)
-		}
-		r, err := db.AdifToRecord(rec)
-		if err == nil {
-			m.d.AddRecord(r)
 		}
 	}
 }
