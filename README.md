@@ -21,6 +21,8 @@ features I need/want.
 go install github.com/tzneal/ham-go/cmd/termlog
 ```
 
+Precompiled binaries are also available at https://github.com/tzneal/ham-go/releases
+
 ## Configuration
 
 1) Run termlog once, then hit Ctrl+Q to quit.  This will create an initial

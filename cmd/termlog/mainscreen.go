@@ -70,7 +70,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	// status bar
 	yPos := 0
 	sb := ui.NewStatusBar(yPos)
-	sb.AddText("termlog")
+	sb.AddText("termlog " + ham.Version)
 	sb.AddClock("Local")
 	sb.AddText("/")
 	sb.AddClock("UTC")
