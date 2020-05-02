@@ -77,17 +77,18 @@ type Label struct {
 
 // Config is the top level configuration structure corresponding to ~/.termlog
 type Config struct {
-	Operator  Operator
-	Rig       Rig
-	WSJTX     WSJTX
-	FLLog     FLLog
-	Lookup    map[string]callsigns.LookupConfig
-	DXCluster DXCluster
-	POTASpot  POTASpot
-	SOTASpot  SOTASpot
-	Theme     ui.Theme
-	Label     []Label
-	noNet     bool // lowercase, so it shouldn't be serialized
+	Configured bool
+	Operator   Operator
+	Rig        Rig
+	WSJTX      WSJTX
+	FLLog      FLLog
+	Lookup     map[string]callsigns.LookupConfig
+	DXCluster  DXCluster
+	POTASpot   POTASpot
+	SOTASpot   SOTASpot
+	Theme      ui.Theme
+	Label      []Label
+	noNet      bool // lowercase, so it shouldn't be serialized
 }
 
 // SaveAs saves a config file to disk.

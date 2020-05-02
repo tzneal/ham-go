@@ -62,12 +62,14 @@ func main() {
 	// load our config file
 	_, err := toml.DecodeFile(*config, cfg)
 	if err != nil {
-		log.Printf("unable to read %s, trying to create it: %s", *config, err)
-		if err = cfg.SaveAs(*config); err != nil {
-			log.Fatalf("unable to create config file %s: %s", *config, err)
+		if !ham.FileOrDirectoryExists(*config) {
+			if err = cfg.SaveAs(*config); err != nil {
+				log.Fatalf("unable to create config file %s: %s", *config, err)
+			}
+		} else {
+			log.Printf("unable to read %s: %s", *config, err)
 		}
 	}
-
 	cfg.noNet = *noNet
 
 	if *upgradeConfig {
@@ -76,6 +78,13 @@ func main() {
 		}
 		fmt.Println("config file upgraded")
 		return
+	}
+
+	// allow the above but if the config file hasn't been edited, don't do anything else
+	if !cfg.Configured {
+		fmt.Printf("Please edit %s to configure termlog before operating it.\n", *config)
+		fmt.Println("At a minimum, set Configured = true to enable termlog to run")
+		os.Exit(1)
 	}
 
 	if *syncLOTWQSQL {
