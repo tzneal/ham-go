@@ -1,9 +1,9 @@
-package wsjtx
+package logingest
 
 import "time"
 
-// QSOLogged is sent when a QSO is logged
-type QSOLogged struct {
+// WSJTXQSOLogged is sent when a QSO is logged
+type WSJTXQSOLogged struct {
 	ID        string // unique key
 	DXGrid    string
 	DXCall    string
@@ -19,6 +19,6 @@ type QSOLogged struct {
 }
 
 // Code returns the message op code
-func (q QSOLogged) Code() MessageCode {
+func (q WSJTXQSOLogged) Code() WSJTXMessageCode {
 	return MessageQSOLogged
 }

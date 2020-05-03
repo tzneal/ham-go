@@ -1,49 +1,38 @@
-package wsjtx
+package logingest
 
 import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"os"
 	"time"
 )
 
 // WSJTMagic is the WSJT-X magic that prefixes messages
 const WSJTMagic = 0xadbccbda
 
-// MessageCode is a WSJT-X message code
-//go:generate stringer -type=MessageCode
-type MessageCode uint32
+// WSJTXMessageCode is a WSJT-X message code
+//go:generate stringer -type=WSJTXMessageCode
+type WSJTXMessageCode uint32
 
 // WSJT-X message op codes
 const (
-	MessageHeartbeat  MessageCode = 0
-	MessageStatus     MessageCode = 1
-	MessageDecode     MessageCode = 2
-	MessageClear      MessageCode = 3
-	MessageReply      MessageCode = 4
-	MessageQSOLogged  MessageCode = 5
-	MessageClose      MessageCode = 6
-	MessageReplay     MessageCode = 7
-	MessageHaltTX     MessageCode = 8
-	MessageFreeText   MessageCode = 9
-	MessageWSPRDecode MessageCode = 10
-	MessageLocation   MessageCode = 11
-	MessageLoggedADIF MessageCode = 12
+	MessageHeartbeat  WSJTXMessageCode = 0
+	MessageStatus     WSJTXMessageCode = 1
+	MessageDecode     WSJTXMessageCode = 2
+	MessageClear      WSJTXMessageCode = 3
+	MessageReply      WSJTXMessageCode = 4
+	MessageQSOLogged  WSJTXMessageCode = 5
+	MessageClose      WSJTXMessageCode = 6
+	MessageReplay     WSJTXMessageCode = 7
+	MessageHaltTX     WSJTXMessageCode = 8
+	MessageFreeText   WSJTXMessageCode = 9
+	MessageWSPRDecode WSJTXMessageCode = 10
+	MessageLocation   WSJTXMessageCode = 11
+	MessageLoggedADIF WSJTXMessageCode = 12
 )
 
-var op, err = os.Create("/tmp/wsjtx.log")
-
-// Decode decodes a WSJT-X message
-func Decode(b []byte) (Message, error) {
-	op.WriteString("[]byte{")
-	for i := 0; i < len(b); i++ {
-		if i != 0 {
-			op.WriteString(",")
-		}
-		op.WriteString(fmt.Sprintf("0x%02x", b[i]))
-	}
-	op.WriteString("}\n\n")
+// WSJTXDecode decodes a WSJT-X message
+func WSJTXDecode(b []byte) (WSJTXMessage, error) {
 	offset := 0
 	magic := binary.BigEndian.Uint32(b[offset:])
 	offset += 4
@@ -57,46 +46,46 @@ func Decode(b []byte) (Message, error) {
 		return nil, fmt.Errorf("only schema version 2 is supported, got %d", schema)
 	}
 
-	code := MessageCode(binary.BigEndian.Uint32(b[offset:]))
+	code := WSJTXMessageCode(binary.BigEndian.Uint32(b[offset:]))
 	offset += 4
 	switch code {
 	case MessageQSOLogged:
-		return decodeQSOLogged(b[offset:])
+		return wsjtxDecodeQSOLogged(b[offset:])
 	case MessageLoggedADIF:
-		return decodeLoggedADIF(b[offset:])
+		return wsjtxDecodeLoggedADIF(b[offset:])
 	}
 
 	return nil, fmt.Errorf("unsupported message: %d", code)
 }
 
-func decodeLoggedADIF(b []byte) (Message, error) {
+func wsjtxDecodeLoggedADIF(b []byte) (WSJTXMessage, error) {
 	offset := 0
-	id, idSz := parseUTF8(b[offset:])
+	id, idSz := parseQString(b[offset:])
 	offset += idSz
 	// ADIF is a raw ADIF record as produced by WSJTX
-	adif, adifSz := parseUTF8(b[offset:])
+	adif, adifSz := parseQString(b[offset:])
 	offset += adifSz
-	return &LoggedADIF{ID: id, ADIF: adif}, nil
+	return &WSJTXLoggedAdif{ID: id, ADIF: adif}, nil
 }
 
-func decodeQSOLogged(b []byte) (Message, error) {
-	msg := &QSOLogged{}
+func wsjtxDecodeQSOLogged(b []byte) (WSJTXMessage, error) {
+	msg := &WSJTXQSOLogged{}
 	offset := 0
 
-	id, idSz := parseUTF8(b[offset:])
+	id, idSz := parseQString(b[offset:])
 	offset += idSz
 	msg.ID = id
 
-	dateOff, err := decodeQDateTime(b[offset:])
+	dateOff, err := parseQDateTime(b[offset:])
 	if err != nil {
 		log.Printf("QSO-err-1")
 		return nil, err
 	}
 	offset += 13
 
-	dxCall, dxCallSz := parseUTF8(b[offset:])
+	dxCall, dxCallSz := parseQString(b[offset:])
 	offset += dxCallSz
-	dxGrid, dxGridSz := parseUTF8(b[offset:])
+	dxGrid, dxGridSz := parseQString(b[offset:])
 	offset += dxGridSz
 	msg.DXCall = dxCall
 	msg.DXGrid = dxGrid
@@ -106,31 +95,31 @@ func decodeQSOLogged(b []byte) (Message, error) {
 	msg.Frequency = f
 	offset += 8
 
-	mode, modeSz := parseUTF8(b[offset:])
+	mode, modeSz := parseQString(b[offset:])
 	offset += modeSz
 	msg.Mode = mode
 
-	rst, rstSz := parseUTF8(b[offset:])
+	rst, rstSz := parseQString(b[offset:])
 	offset += rstSz
 	msg.RST = rst
 
-	rrt, rrtSz := parseUTF8(b[offset:])
+	rrt, rrtSz := parseQString(b[offset:])
 	offset += rrtSz
 	msg.RRT = rrt
 
-	txPwr, txPwrSz := parseUTF8(b[offset:])
+	txPwr, txPwrSz := parseQString(b[offset:])
 	offset += txPwrSz
 	msg.TXPower = txPwr
 
-	comments, commentsSz := parseUTF8(b[offset:])
+	comments, commentsSz := parseQString(b[offset:])
 	offset += commentsSz
 	msg.Comments = comments
 
-	name, nameSz := parseUTF8(b[offset:])
+	name, nameSz := parseQString(b[offset:])
 	offset += nameSz
 	msg.Name = name
 
-	dateOn, err := decodeQDateTime(b[offset:])
+	dateOn, err := parseQDateTime(b[offset:])
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +129,7 @@ func decodeQSOLogged(b []byte) (Message, error) {
 	return msg, nil
 }
 
-func decodeQDateTime(b []byte) (time.Time, error) {
+func parseQDateTime(b []byte) (time.Time, error) {
 	offset := 0
 	julianDay := int64(binary.BigEndian.Uint64(b[offset:]))
 	offset += 8
@@ -171,7 +160,7 @@ func asLocal(d time.Time) time.Time {
 		d.Minute(), d.Second(), d.Nanosecond(), time.Local)
 }
 
-func parseUTF8(b []byte) (string, int) {
+func parseQString(b []byte) (string, int) {
 	sz := binary.BigEndian.Uint32(b)
 	offset := 4
 	id := make([]byte, sz, sz)

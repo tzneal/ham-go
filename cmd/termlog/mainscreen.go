@@ -24,11 +24,10 @@ import (
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 	"github.com/tzneal/ham-go/db"
 	"github.com/tzneal/ham-go/dxcc"
-	"github.com/tzneal/ham-go/fldigi"
+	"github.com/tzneal/ham-go/logingest"
 	"github.com/tzneal/ham-go/logsync"
 	"github.com/tzneal/ham-go/rig"
 	"github.com/tzneal/ham-go/spotting"
-	"github.com/tzneal/ham-go/wsjtx"
 )
 
 type mainScreen struct {
@@ -39,8 +38,9 @@ type mainScreen struct {
 	bookmarks  *ham.Bookmarks
 	repo       *git.Repository
 	cfg        *Config
-	wsjtxLog   *wsjtx.Server
-	fldigiLog  *fldigi.Server
+	wsjtxLog   *logingest.WSJTXServer
+	fldigiLog  *logingest.FLDIGIServer
+	js8log     *logingest.JS8Server
 	rig        *rig.RigCache
 	d          *db.Database
 	editingQSO bool // are we editing a QSO, or creating a new one?
@@ -303,7 +303,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	})
 
 	if cfg.WSJTX.Enabled {
-		wsjtxLog, err := wsjtx.NewServer(cfg.WSJTX.Address)
+		wsjtxLog, err := logingest.NewWSJTXServer(cfg.WSJTX.Address)
 		if err != nil {
 			ms.logErrorf("error launching WSJTx server: %s", err)
 		} else {
@@ -313,8 +313,18 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 		}
 	}
 
+	if cfg.JS8Call.Enabled {
+		js8log, err := logingest.NewJS8Server(cfg.JS8Call.Address)
+		if err != nil {
+			ms.logErrorf("error launching JS8Call server: %s", err)
+		} else {
+			ms.logInfo("accepting logs from JS8Call at %s", cfg.JS8Call.Address)
+			ms.js8log = js8log
+			ms.js8log.Run()
+		}
+	}
 	if cfg.FLLog.Enabled {
-		fldigiLog, err := fldigi.NewServer(cfg.FLLog.Address)
+		fldigiLog, err := logingest.NewFLDIGIServer(cfg.FLLog.Address)
 		if err != nil {
 			ms.logErrorf("error launching fldigi server: %s", err)
 		} else {
@@ -700,11 +710,31 @@ func (m *mainScreen) showHelp() {
 func (m *mainScreen) Tick() bool {
 	m.controller.Redraw()
 
+	m.pollForLogs()
+
+	if !m.controller.HandleEvent(input.ReadKeyEvent()) {
+		m.controller.Shutdown()
+		if m.wsjtxLog != nil {
+			m.wsjtxLog.Close()
+		}
+		if m.fldigiLog != nil {
+			m.fldigiLog.Close()
+		}
+		if m.js8log != nil {
+			m.js8log.Close()
+		}
+		close(m.shutdown)
+		return false
+	}
+	return true
+}
+
+func (m *mainScreen) pollForLogs() {
 	if m.cfg.WSJTX.Enabled {
 		select {
 		case msg := <-m.wsjtxLog.Messages:
 			switch v := msg.(type) {
-			case *wsjtx.QSOLogged:
+			case *logingest.WSJTXQSOLogged:
 				arec, err := convertToADIF(v)
 				if err != nil {
 					m.logErrorf("error converting QSO: %s", err)
@@ -726,17 +756,24 @@ func (m *mainScreen) Tick() bool {
 				m.logInfo("received QSO from fldigi: %s %s", arec.Get(adif.Call), arec.Get(adif.AMode))
 				m.toBeLogged <- logRequest{record: arec, external: true}
 			}
-
 		default:
-
 		}
 	}
-	if !m.controller.HandleEvent(input.ReadKeyEvent()) {
-		m.controller.Shutdown()
-		close(m.shutdown)
-		return false
+	if m.cfg.JS8Call.Enabled {
+		select {
+		case rec := <-m.js8log.Messages:
+			if rec.Type == "LOG.QSO" {
+				rdr := strings.NewReader("<eoh>\n" + rec.Value)
+				alog, err := adif.Parse(rdr)
+				if err == nil && len(alog.Records) == 1 {
+					arec := alog.Records[0]
+					m.logInfo("received QSO from JS8Call: %s %s", arec.Get(adif.Call), arec.Get(adif.AMode))
+					m.toBeLogged <- logRequest{record: arec, external: true}
+				}
+			}
+		default:
+		}
 	}
-	return true
 }
 
 func (m *mainScreen) logErrorf(s string, a ...interface{}) {
@@ -830,7 +867,7 @@ func (m *mainScreen) handleHamlibDebug(level goHamlib.DebugLevel, msg string) {
 	}
 }
 
-func convertToADIF(msg *wsjtx.QSOLogged) (adif.Record, error) {
+func convertToADIF(msg *logingest.WSJTXQSOLogged) (adif.Record, error) {
 	record := adif.Record{}
 
 	record = append(record,

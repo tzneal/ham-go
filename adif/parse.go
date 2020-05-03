@@ -76,6 +76,8 @@ lfor:
 				}
 				field.Normalize()
 				log.Header = append(log.Header, field)
+			case tokenEOF:
+				return nil, errors.New("reached end of file without seeing <EOH>")
 			default:
 				comments.WriteString(tok.s)
 				p.read()
@@ -84,6 +86,13 @@ lfor:
 			tok := p.peek()
 			switch tok.token {
 			case tokenEOF:
+				// record without an <EOR> tag, shouldn't happen in a file but
+				// this is what JS8Call sends
+				if len(record) != 0 {
+					record.Normalize()
+					log.Records = append(log.Records, record)
+					record = Record{}
+				}
 				break lfor
 			case tokenEOR:
 				p.read() // skip it
