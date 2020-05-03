@@ -1,14 +1,14 @@
-package wsjtx
+package logingest
 
-// LoggedADIF  is sent to  the server(s)  when the
+// WSJTXLoggedAdif  is sent to  the server(s)  when the
 // WSJT-X user accepts the "Log  QSO" dialog by clicking the "OK"
 //  button.
-type LoggedADIF struct {
+type WSJTXLoggedAdif struct {
 	ID   string
 	ADIF string
 }
 
 // Code returns the message op code
-func (q LoggedADIF) Code() MessageCode {
+func (q WSJTXLoggedAdif) Code() WSJTXMessageCode {
 	return MessageLoggedADIF
 }

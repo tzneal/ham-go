@@ -1,4 +1,4 @@
-package fldigi
+package logingest
 
 import "encoding/xml"
 

@@ -1,17 +1,18 @@
-package wsjtx
+package logingest
 
 import (
+	"log"
 	"net"
 )
 
-type Server struct {
-	Messages chan Message
+type WSJTXServer struct {
+	Messages chan WSJTXMessage
 
 	conn     *net.UDPConn
 	shutdown chan struct{}
 }
 
-func NewServer(address string) (*Server, error) {
+func NewWSJTXServer(address string) (*WSJTXServer, error) {
 	addr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
 		return nil, err
@@ -21,15 +22,15 @@ func NewServer(address string) (*Server, error) {
 		return nil, err
 
 	}
-	s := &Server{
+	s := &WSJTXServer{
 		conn:     conn,
 		shutdown: make(chan struct{}),
-		Messages: make(chan Message),
+		Messages: make(chan WSJTXMessage),
 	}
 	return s, nil
 }
 
-func (s *Server) run() {
+func (s *WSJTXServer) run() {
 	buf := make([]byte, 8192)
 	for {
 		select {
@@ -42,9 +43,9 @@ func (s *Server) run() {
 		default:
 			n, _, err := s.conn.ReadFromUDP(buf)
 			if err == nil {
-				msg, err := Decode(buf[0:n])
+				msg, err := WSJTXDecode(buf[0:n])
 				if err != nil {
-					//log.Fatalf("%s", err)
+					log.Printf("error decoding WJST-X message: %s", err)
 				} else {
 					s.Messages <- msg
 				}
@@ -55,12 +56,12 @@ func (s *Server) run() {
 }
 
 // Close gracefully shuts down the server
-func (s *Server) Close() error {
+func (s *WSJTXServer) Close() error {
 	close(s.shutdown)
 	return s.conn.Close()
 }
 
 // Run is a non-blocking call that starts the server
-func (s *Server) Run() {
+func (s *WSJTXServer) Run() {
 	go s.run()
 }

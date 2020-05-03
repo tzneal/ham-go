@@ -2,3 +2,4 @@
 *.adif
 vendor
 .idea
+release-build/termlog.*

@@ -1,11 +1,11 @@
-package fldigi_test
+package logingest_test
 
 import (
 	"encoding/xml"
 	"strings"
 	"testing"
 
-	"github.com/tzneal/ham-go/fldigi"
+	"github.com/tzneal/ham-go/logingest"
 )
 
 func TestParseListMethods(t *testing.T) {
@@ -14,7 +14,7 @@ func TestParseListMethods(t *testing.T) {
 		</methodCall>`)
 
 	dec := xml.NewDecoder(r)
-	msg := &fldigi.MethodCall{}
+	msg := &logingest.MethodCall{}
 	if err := dec.Decode(msg); err != nil {
 		t.Fatalf("error parsing: %s", err)
 	}
@@ -31,7 +31,7 @@ func TestParseListMethodsResponse(t *testing.T) {
 		</param></params></methodResponse>`)
 
 	dec := xml.NewDecoder(r)
-	msg := &fldigi.MethodResponse{}
+	msg := &logingest.MethodResponse{}
 	if err := dec.Decode(msg); err != nil {
 		t.Fatalf("error parsing: %s", err)
 	}

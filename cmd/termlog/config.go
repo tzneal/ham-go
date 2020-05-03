@@ -81,6 +81,7 @@ type Config struct {
 	Operator   Operator
 	Rig        Rig
 	WSJTX      WSJTX
+	JS8Call    JS8Call
 	FLLog      FLLog
 	Lookup     map[string]callsigns.LookupConfig
 	DXCluster  DXCluster
@@ -104,6 +105,12 @@ func (c *Config) SaveAs(filename string) error {
 
 // WSJTX controls WJSTX logging
 type WSJTX struct {
+	Enabled bool
+	Address string
+}
+
+// JS8Call controls JS8Call logging
+type JS8Call struct {
 	Enabled bool
 	Address string
 }
@@ -141,6 +148,7 @@ func NewConfig() *Config {
 	cfg.Operator.LOTWtqslPath = tqslPath
 	cfg.WSJTX.Address = "127.0.0.1:2237"
 	cfg.FLLog.Address = "127.0.0.1:8421"
+	cfg.JS8Call.Address = "127.0.0.1:2242"
 
 	cfg.Theme.StatusBg = 40 // light blue
 	cfg.Theme.StatusFg = 1

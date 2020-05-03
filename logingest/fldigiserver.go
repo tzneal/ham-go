@@ -1,4 +1,4 @@
-package fldigi
+package logingest
 
 import (
 	"context"
@@ -8,20 +8,20 @@ import (
 	"time"
 )
 
-type Server struct {
+type FLDIGIServer struct {
 	Messages chan string
 	server   *http.Server
 	shutdown chan struct{}
 }
 
-func NewServer(addr string) (*Server, error) {
+func NewFLDIGIServer(addr string) (*FLDIGIServer, error) {
 	mux := http.NewServeMux()
 	h := &http.Server{
 		Addr:    addr,
 		Handler: mux,
 	}
 
-	s := &Server{
+	s := &FLDIGIServer{
 		server:   h,
 		shutdown: make(chan struct{}),
 		Messages: make(chan string),
@@ -38,7 +38,7 @@ const (
 	getRecord   = "log.get_record"
 )
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *FLDIGIServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
@@ -65,12 +65,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func newRsp() *MethodResponse {
+func newFldigiRsp() *MethodResponse {
 	rsp := &MethodResponse{}
 	rsp.Params = &MethodParams{}
 	return rsp
 }
-func newParam() MethodParam {
+func newFldigiParam() MethodParam {
 	param := MethodParam{}
 	param.Value = &ParamValue{}
 	param.Value.Array = &ParamValueArray{}
@@ -78,14 +78,14 @@ func newParam() MethodParam {
 	return param
 }
 
-func (s *Server) addRecord(w http.ResponseWriter, msg *MethodCall) {
-	if !verifySingleValue(w, msg) {
+func (s *FLDIGIServer) addRecord(w http.ResponseWriter, msg *MethodCall) {
+	if !fldigiVerifySingleValue(w, msg) {
 		log.Printf("FAILED!: %#v", msg.Params.Param[0].Value)
 		return
 	}
 
-	rsp := newRsp()
-	param := newParam()
+	rsp := newFldigiRsp()
+	param := newFldigiParam()
 	// fllog returns an empty string
 	param.Value.Array.Data.Value = append(param.Value.Array.Data.Value, "")
 	rsp.Params.Param = append(rsp.Params.Param, param)
@@ -95,16 +95,16 @@ func (s *Server) addRecord(w http.ResponseWriter, msg *MethodCall) {
 	s.Messages <- msg.Params.Param[0].Value.Data
 }
 
-func (s *Server) getRecord(w http.ResponseWriter, msg *MethodCall) {
-	rsp := newRsp()
-	param := newParam()
+func (s *FLDIGIServer) getRecord(w http.ResponseWriter, msg *MethodCall) {
+	rsp := newFldigiRsp()
+	param := newFldigiParam()
 	param.Value.Array.Data.Value = append(param.Value.Array.Data.Value, "NO_RECORD")
 	rsp.Params.Param = append(rsp.Params.Param, param)
 	enc := xml.NewEncoder(w)
 	enc.Encode(&rsp)
 }
 
-func verifySingleValue(w http.ResponseWriter, msg *MethodCall) bool {
+func fldigiVerifySingleValue(w http.ResponseWriter, msg *MethodCall) bool {
 	if len(msg.Params.Param) != 1 {
 		http.Error(w, "expected a single param", http.StatusBadRequest)
 		return false
@@ -134,17 +134,17 @@ func verifySingleValue(w http.ResponseWriter, msg *MethodCall) bool {
 	return true
 }
 
-func (s *Server) methodHelp(w http.ResponseWriter, msg *MethodCall) {
+func (s *FLDIGIServer) methodHelp(w http.ResponseWriter, msg *MethodCall) {
 	if msg.Params == nil {
 		http.Error(w, "expected params", http.StatusBadRequest)
 		return
 	}
-	if !verifySingleValue(w, msg) {
+	if !fldigiVerifySingleValue(w, msg) {
 		return
 	}
 
-	rsp := newRsp()
-	param := newParam()
+	rsp := newFldigiRsp()
+	param := newFldigiParam()
 	switch msg.Params.Param[0].Value.Array.Data.Value[0] {
 	case addRecord:
 		param.Value.Array.Data.Value = append(param.Value.Array.Data.Value, "log.add_record ADIF RECORD")
@@ -159,9 +159,9 @@ func (s *Server) methodHelp(w http.ResponseWriter, msg *MethodCall) {
 	enc.Encode(&rsp)
 }
 
-func (s *Server) listMethods(w http.ResponseWriter, msg *MethodCall) {
-	rsp := newRsp()
-	param := newParam()
+func (s *FLDIGIServer) listMethods(w http.ResponseWriter, msg *MethodCall) {
+	rsp := newFldigiRsp()
+	param := newFldigiParam()
 	param.Value.Array.Data.Value = append(param.Value.Array.Data.Value, listMethods)
 	param.Value.Array.Data.Value = append(param.Value.Array.Data.Value, addRecord)
 	param.Value.Array.Data.Value = append(param.Value.Array.Data.Value, methodHelp)
@@ -171,12 +171,12 @@ func (s *Server) listMethods(w http.ResponseWriter, msg *MethodCall) {
 }
 
 // Run is a non-blocking call that starts the server
-func (s *Server) Run() {
+func (s *FLDIGIServer) Run() {
 	go s.server.ListenAndServe()
 }
 
 // Close gracefully shuts down the server
-func (s *Server) Close() error {
+func (s *FLDIGIServer) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return s.server.Shutdown(ctx)
