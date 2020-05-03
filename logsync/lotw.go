@@ -1,6 +1,7 @@
 package logsync
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -54,7 +55,10 @@ func (c LOTWClient) QSLReport(since time.Time) (*adif.Log, error) {
 		return nil, err
 	}
 	defer rsp.Body.Close()
-	r := util.NewSkipReader(rsp.Body, []byte("<PROGRAMID"))
+
+	buf, _ := ioutil.ReadAll(rsp.Body)
+	ioutil.WriteFile("/tmp/lotw", buf, 0644)
+	r := util.NewSkipReader(bytes.NewReader(buf), []byte("<PROGRAMID"))
 
 	return adif.Parse(r)
 }

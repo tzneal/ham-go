@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -796,6 +797,9 @@ func (m *mainScreen) executeCommands() {
 	execute := func(cmd ui.Command) {
 		start := time.Now()
 		ec := exec.Command("bash", "-c", cmd.Command)
+		ec.Env = os.Environ()
+		ec.Env = append(ec.Env, fmt.Sprintf("TQSL=%s", m.cfg.Operator.LOTWtqslPath))
+		ec.Env = append(ec.Env, fmt.Sprintf("LOGFILE=%s", m.alog.Filename))
 		op, err := ec.CombinedOutput()
 		if err != nil {
 			if len(op) > 0 {
