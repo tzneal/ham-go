@@ -273,7 +273,8 @@ func (q *QSO) SetDefaults() {
 			}
 		}
 	} else {
-		q.mode.SetSelected("")
+		// Don't reset the mode
+		// q.mode.SetSelected("")
 	}
 	q.name.SetValue("")
 	q.grid.SetValue("")

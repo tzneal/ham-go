@@ -9,7 +9,7 @@ based ham contact logger.  I'm developing it for my own use, so it only has
 features I need/want.
 
 - Saves logs as ADIF files with custom fields
-- Supports auto-commiting log files to a git repository
+- Supports auto-commiting log filesgit to a git repository
 - DX cluster & POTA spot monitoring
 - Radio control through hamlib (github.com/dh1tw/goHamlib)
 - Logs for both WSJT-X and fldigi
@@ -28,6 +28,23 @@ Precompiled binaries are also available at https://github.com/tzneal/ham-go/rele
 1) Run termlog once, then hit Ctrl+Q to quit.  This will create an initial
    config file at ~/.termlog.toml that you can then modify.
 2) Fill out the operator section at a minimum
+
+## Custom Commands
+
+Custom user commands can be reached through ```Ctrl+E```. These command are defined in the configuration file and environment
+variables are used to pass state to the command line.
+
+As an exanple, the following will construct a command that syncs the current ADIF log file with LoTW using tqsl.
+
+```toml
+  [[Operator.Commands]]
+    Name = "Sync Current Logfile with LoTW"
+    Command = "$TQSL -a compliant --nodate --upload --batch $LOGFILE"
+```
+
+Environment Variables
+- LOGFILE - Path to the current logfile
+- TQSL - Path to the tqsl binary configured in the configuration file
 
 ### Custom Fields
 In the configuration file, custom ADIF fields can be defined.  A SOTA field is defined in the default 
