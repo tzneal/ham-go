@@ -53,6 +53,9 @@ func WSJTXDecode(b []byte) (WSJTXMessage, error) {
 		return wsjtxDecodeQSOLogged(b[offset:])
 	case MessageLoggedADIF:
 		return wsjtxDecodeLoggedADIF(b[offset:])
+	case MessageHeartbeat, MessageStatus, MessageDecode, MessageClear, MessageReply:
+		// don't care about these
+		return nil, nil
 	}
 
 	return nil, fmt.Errorf("unsupported message: %d", code)

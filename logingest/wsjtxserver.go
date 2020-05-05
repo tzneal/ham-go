@@ -46,7 +46,7 @@ func (s *WSJTXServer) run() {
 				msg, err := WSJTXDecode(buf[0:n])
 				if err != nil {
 					log.Printf("error decoding WJST-X message: %s", err)
-				} else {
+				} else if msg != nil {
 					s.Messages <- msg
 				}
 			}
