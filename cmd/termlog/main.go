@@ -54,6 +54,9 @@ func main() {
 		}
 		return
 	}
+	plog := &preservelogs{}
+	log.SetFlags(0)
+	log.SetOutput(plog)
 
 	cfg := NewConfig()
 
@@ -187,6 +190,25 @@ func main() {
 	alog.SetHeader(adif.Operator, cfg.Operator.Call)
 
 	logRepo, _ := git.PlainOpenWithOptions(logDir, &git.PlainOpenOptions{DetectDotGit: true})
+	if cfg.Operator.GitPullOnStartup && !cfg.noNet {
+		wt, err := logRepo.Worktree()
+		if err != nil {
+			log.Printf("error pulling logs: %s", err)
+		} else {
+			po := &git.PullOptions{}
+			po.Auth, _ = cfg.GitAuth()
+			err := wt.Pull(po)
+			switch err {
+			case git.NoErrAlreadyUpToDate:
+				log.Println("git log repository up to date")
+			case nil:
+				log.Println("pulled new logs")
+			default:
+				log.Printf("error pulling logs: %s", err)
+			}
+		}
+	}
+
 	var bookmarks *ham.Bookmarks
 	bmFile := filepath.Join(logDir, "bookmarks.toml")
 	if ham.FileOrDirectoryExists(bmFile) {
@@ -203,6 +225,9 @@ func main() {
 	}
 
 	mainScreen := newMainScreen(cfg, alog, logRepo, bookmarks, rc, d)
+	for _, l := range plog.logs {
+		mainScreen.logInfo(l)
+	}
 	if rigConnectError != nil {
 		if !ui.YesNoQuestion("Rig not found, proceed without rig?") {
 			mainScreen.controller.Shutdown()
