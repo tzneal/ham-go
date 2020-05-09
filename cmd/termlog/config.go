@@ -1,10 +1,12 @@
 package main
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 
 	"github.com/BurntSushi/toml"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 
 	"github.com/tzneal/ham-go/callsigns"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
@@ -13,26 +15,32 @@ import (
 
 // Operator is configuration info about the person operating the station.
 type Operator struct {
-	Name               string
-	Email              string
-	Call               string
-	Grid               string
-	City               string
-	County             string
-	State              string
-	Country            string
+	Name    string
+	Email   string
+	Call    string
+	Grid    string
+	City    string
+	County  string
+	State   string
+	Country string
+	// GIT related
+	GitPushAfterCommit bool   // If true, push to the log repository after committing the logs
+	GitKey             string // Path to the git key to use (e.g. ~/.ssh/id_rsa)
+	GitPullOnStartup   bool   // If true, try to pull new logs from the log repository on startup
+	GitCommitOnExit    bool   // If true, auto-commit on exiting.  If GitPushAfterCommit is true, it will push as well.
+	// Logging
 	Logdir             string // directory to store logs
 	LOTWAutoUpload     bool
 	LOTWUsername       string
 	LOTWPassword       string
 	LOTWtqslPath       string
-	GitPushAfterCommit bool
-	GitKey             string
 	DateBasedLogging   bool
 	DateBasedLogFormat string
 	SpotExpiration     int
-	CustomFields       []ui.CustomField
-	Commands           []ui.Command
+	// UI Customization
+	CustomFields []ui.CustomField
+	Commands     []ui.Command
+	GitUsername  string
 }
 
 // Rig is the radio that may be controlled
@@ -92,6 +100,15 @@ type Config struct {
 	noNet      bool // lowercase, so it shouldn't be serialized
 }
 
+func (c *Config) GitAuth() (*ssh.PublicKeys, error) {
+	if c.Operator.GitKey != "" {
+		keyFilePath := expandPath(c.Operator.GitKey)
+		sshKey, _ := ioutil.ReadFile(keyFilePath)
+		return ssh.NewPublicKeys(c.Operator.GitUsername, []byte(sshKey), "")
+	}
+	return nil, nil
+}
+
 // SaveAs saves a config file to disk.
 func (c *Config) SaveAs(filename string) error {
 	f, err := os.Create(filename)
@@ -128,7 +145,9 @@ func NewConfig() *Config {
 	cfg.Operator.DateBasedLogFormat = "Jan_2006"
 	cfg.Operator.SpotExpiration = 900
 	cfg.Operator.GitPushAfterCommit = true
+	cfg.Operator.GitPullOnStartup = true
 	cfg.Operator.GitKey = "~/.ssh/id_rsa"
+	cfg.Operator.GitUsername = "git"
 	cfg.Operator.Commands = append(cfg.Operator.Commands, ui.Command{
 		Name:    "Create Empty File",
 		Command: "touch /tmp/command_executed.txt",

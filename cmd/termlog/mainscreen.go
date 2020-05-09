@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -14,7 +13,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/nsf/termbox-go"
 
 	"github.com/tzneal/ham-go"
@@ -32,23 +30,24 @@ import (
 )
 
 type mainScreen struct {
-	controller *ui.MainController
-	qso        *ui.QSO
-	qsoList    *ui.QSOList
-	alog       *adif.Log
-	bookmarks  *ham.Bookmarks
-	repo       *git.Repository
-	cfg        *Config
-	wsjtxLog   *logingest.WSJTXServer
-	fldigiLog  *logingest.FLDIGIServer
-	js8log     *logingest.JS8Server
-	rig        *rig.RigCache
-	d          *db.Database
-	editingQSO bool // are we editing a QSO, or creating a new one?
-	messages   *ui.Messages
-	toBeLogged chan logRequest
-	shutdown   chan struct{}
-	lookup     callsigns.Lookup
+	controller      *ui.MainController
+	qso             *ui.QSO
+	qsoList         *ui.QSOList
+	alog            *adif.Log
+	bookmarks       *ham.Bookmarks
+	repo            *git.Repository
+	cfg             *Config
+	wsjtxLog        *logingest.WSJTXServer
+	fldigiLog       *logingest.FLDIGIServer
+	js8log          *logingest.JS8Server
+	rig             *rig.RigCache
+	d               *db.Database
+	editingQSO      bool // are we editing a QSO, or creating a new one?
+	messages        *ui.Messages
+	toBeLogged      chan logRequest
+	shutdown        chan struct{}
+	lookup          callsigns.Lookup
+	loggingReplaced bool
 }
 type logRequest struct {
 	record   adif.Record
@@ -295,6 +294,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	log.SetFlags(0)
 	log.SetOutput(ms)
 	goHamlib.SetDebugCallback(ms.handleHamlibDebug)
+	ms.loggingReplaced = true
 
 	qsoList.OnSelect(func(r adif.Record) {
 		if !qso.HasRig() {
@@ -545,54 +545,67 @@ func (m *mainScreen) commitLog() {
 		if !ok {
 			return
 		}
-		// ham logs are being stored in a git repo
-		wt, err := m.repo.Worktree()
-		if err == nil {
-			fileNameInRepo := m.alog.Filename
-			cfg, _ := m.repo.Config()
-			// the git library wants a relative name
-			if cfg != nil && strings.HasPrefix(fileNameInRepo, wt.Filesystem.Root()) {
-				fileNameInRepo = fileNameInRepo[len(wt.Filesystem.Root())+1:]
-			}
-			_, err := wt.Add(fileNameInRepo)
-			if err != nil {
-				m.logErrorf("unable to add log to repo: %s", err)
-				return
-			}
-			_, err = wt.Commit(commitMsg, &git.CommitOptions{
-				Author: &object.Signature{
-					Name:  m.cfg.Operator.Name,
-					Email: m.cfg.Operator.Email,
-					When:  time.Now(),
-				}})
-			if err != nil {
-				m.logErrorf("unable to add commit to repo: %s", err)
-				return
-			}
-			succMsg := fmt.Sprintf("committed %s to repo", fileNameInRepo)
-			if m.cfg.Operator.GitPushAfterCommit {
-
-				po := &git.PushOptions{}
-				if m.cfg.Operator.GitKey != "" {
-					keyFilePath := expandPath(m.cfg.Operator.GitKey)
-					sshKey, _ := ioutil.ReadFile(keyFilePath)
-					publicKey, err := ssh.NewPublicKeys("git", []byte(sshKey), "")
-					if err != nil {
-						m.logErrorf("error reading key file: %s", err)
-					} else {
-						po.Auth = publicKey
-					}
-				}
-				err = m.repo.Push(po)
-				if err != nil && err != git.NoErrAlreadyUpToDate {
-					m.logErrorf("unable to push repository: %s", err)
-					return
-				}
-				succMsg = fmt.Sprintf("committed %s to repo and pushed", fileNameInRepo)
-			}
-			m.logInfo(succMsg)
-		}
+		m.commitLogWithMessage(commitMsg)
 	}
+}
+
+func (m *mainScreen) commitLogWithMessage(commitMsg string) {
+	// ham logs are being stored in a git repo
+	wt, err := m.repo.Worktree()
+	if err == nil {
+		fileNameInRepo := m.alog.Filename
+		cfg, _ := m.repo.Config()
+		// the git library wants a relative name
+		if cfg != nil && strings.HasPrefix(fileNameInRepo, wt.Filesystem.Root()) {
+			fileNameInRepo = fileNameInRepo[len(wt.Filesystem.Root())+1:]
+		}
+
+		st, err := wt.Status()
+		if err != nil {
+			m.logErrorf("unable to add log to repo: %s", err)
+			return
+		}
+
+		// do we need to commit th elog?
+		fs := st.File(strings.Replace(fileNameInRepo, wt.Filesystem.Root(), "", 1))
+		if fs.Worktree != git.Modified && fs.Worktree != git.Added {
+			m.logInfo("current log not modified, skipping commit")
+			return
+		}
+
+		_, err = wt.Add(fileNameInRepo)
+		if err != nil {
+			m.logErrorf("unable to add log to repo: %s", err)
+			return
+		}
+
+		// commit the log
+		_, err = wt.Commit(commitMsg, &git.CommitOptions{
+			Author: &object.Signature{
+				Name:  m.cfg.Operator.Name,
+				Email: m.cfg.Operator.Email,
+				When:  time.Now(),
+			}})
+		if err != nil {
+			m.logErrorf("unable to add commit to repo: %s", err)
+			return
+		}
+
+		succMsg := fmt.Sprintf("committed %s to repo", fileNameInRepo)
+		// do we need to push it?
+		if m.cfg.Operator.GitPushAfterCommit && !m.cfg.noNet {
+			po := &git.PushOptions{}
+			po.Auth, _ = m.cfg.GitAuth()
+			err = m.repo.Push(po)
+			if err != nil && err != git.NoErrAlreadyUpToDate {
+				m.logErrorf("unable to push repository: %s", err)
+				return
+			}
+			succMsg = fmt.Sprintf("committed %s to repo and pushed", fileNameInRepo)
+		}
+		m.logInfo(succMsg)
+	}
+	return
 }
 
 func (m *mainScreen) saveBookmark() {
@@ -714,6 +727,11 @@ func (m *mainScreen) Tick() bool {
 	m.pollForLogs()
 
 	if !m.controller.HandleEvent(input.ReadKeyEvent()) {
+		// shutting down the UI, so turn the console logger back on
+		log.SetFlags(log.LstdFlags)
+		log.SetOutput(os.Stderr)
+		m.loggingReplaced = false
+
 		m.controller.Shutdown()
 		if m.wsjtxLog != nil {
 			m.wsjtxLog.Close()
@@ -723,6 +741,9 @@ func (m *mainScreen) Tick() bool {
 		}
 		if m.js8log != nil {
 			m.js8log.Close()
+		}
+		if m.cfg.Operator.GitCommitOnExit {
+			m.commitLogWithMessage("auto-commit on exit")
 		}
 		close(m.shutdown)
 		return false
@@ -778,13 +799,21 @@ func (m *mainScreen) pollForLogs() {
 }
 
 func (m *mainScreen) logErrorf(s string, a ...interface{}) {
-	msg := fmt.Sprintf(s, a...)
-	m.messages.AddError(msg)
+	if m.loggingReplaced {
+		msg := fmt.Sprintf(s, a...)
+		m.messages.AddError(msg)
+	} else {
+		log.Printf(s, a...)
+	}
 }
 
 func (m *mainScreen) logInfo(s string, a ...interface{}) {
-	msg := fmt.Sprintf(s, a...)
-	m.messages.AddMessage(msg)
+	if m.loggingReplaced {
+		msg := fmt.Sprintf(s, a...)
+		m.messages.AddMessage(msg)
+	} else {
+		log.Printf(s, a...)
+	}
 }
 
 func (m *mainScreen) executeCommands() {
