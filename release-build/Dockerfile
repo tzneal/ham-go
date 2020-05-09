@@ -26,7 +26,12 @@ RUN apt-get update \
        libhamlib-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN go get -u github.com/tzneal/ham-go
+ARG TAG
+RUN mkdir -p /go/src/github.com/tzneal/
+RUN cd /go/src/github.com/tzneal/ && git clone -b $TAG https://github.com/tzneal/ham-go.git
+RUN cd /go/src/github.com/tzneal/ham-go/release-build && make write-version
+RUN cd /go/src/github.com/tzneal/ham-go && git log HEAD~1
+
 
 ENV GOOS=linux
 ENV CGO_ENABLED=1
