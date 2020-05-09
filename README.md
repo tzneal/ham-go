@@ -17,8 +17,28 @@ features I need/want.
 
 ## Installation
 
+### Linux x64
+    ```
+    sudo apt-get install -y libhamlib2
+    sudo wget https://github.com/tzneal/ham-go/releases/download/v0.1.0/termlog.amd64 -O /usr/bin/termlog
+    sudo chmod a+x /usr/bin/termlog
+    /usr/bin/termlog --upgrade-config
+    ```
+    
+### Linux/32 bit ARM (Raspbery Pi)
 ```
-go install github.com/tzneal/ham-go/cmd/termlog
+sudo apt-get install -y libhamlib2
+sudo wget https://github.com/tzneal/ham-go/releases/download/v0.1.0/termlog.arm -O /usr/bin/termlog
+sudo chmod a+x /usr/bin/termlog
+/usr/bin/termlog --upgrade-config
+```
+
+### Linux/64 bit ARM
+```
+sudo apt-get install -y libhamlib2
+sudo wget https://github.com/tzneal/ham-go/releases/download/v0.1.0/termlog.arm64 -O /usr/bin/termlog
+sudo chmod a+x /usr/bin/termlog
+/usr/bin/termlog --upgrade-config
 ```
 
 Precompiled binaries are also available at https://github.com/tzneal/ham-go/releases
