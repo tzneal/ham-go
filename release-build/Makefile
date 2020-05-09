@@ -4,6 +4,7 @@
 VERSION:=`git describe --tags`
 BUILD:=`date +%F`
 
+all: gencode pull-tags write-version
 pull-tags:
 	git fetch --tags
 
@@ -19,3 +20,4 @@ write-version:
 	echo "package ham\n" > ../version.go
 	echo "const Version = \"${VERSION}\"" >> ../version.go
 	echo "const BuildDate = \"${BUILD}\"" >> ../version.go
+
