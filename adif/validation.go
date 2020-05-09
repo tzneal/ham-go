@@ -2,16 +2,8 @@ package adif
 
 import "fmt"
 
-func ValidateEqsl(l Log) error {
-	for _, record := range l.Records {
-		if err := ValidateEqslRecord(record); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func ValidateEqslRecord(r Record) error {
+// ValidateADIFRecord determines if the record has the minimum required fields to be considered valid.
+func ValidateADIFRecord(r Record) error {
 	hasFields := map[Identifier]bool{}
 	for _, f := range r {
 		hasFields[f.Name] = true
@@ -28,4 +20,9 @@ func ValidateEqslRecord(r Record) error {
 		return fmt.Errorf("must have one of %s, %s or %s", ABand, Frequency, SatelliteMode)
 	}
 	return nil
+}
+
+// IsValid returns true if  the record has the minimum required fields to be considered valid.
+func IsValid(r Record) bool {
+	return ValidateADIFRecord(r) == nil
 }

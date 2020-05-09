@@ -53,7 +53,7 @@ func WSJTXDecode(b []byte) (WSJTXMessage, error) {
 		return wsjtxDecodeQSOLogged(b[offset:])
 	case MessageLoggedADIF:
 		return wsjtxDecodeLoggedADIF(b[offset:])
-	case MessageHeartbeat, MessageStatus, MessageDecode, MessageClear, MessageReply:
+	case MessageHeartbeat, MessageStatus, MessageDecode, MessageClear, MessageReply, MessageClose:
 		// don't care about these
 		return nil, nil
 	}

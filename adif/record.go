@@ -40,19 +40,6 @@ func (r Record) GetFloat(id Identifier) float64 {
 	return val
 }
 
-func (r Record) IsValid() bool {
-	if r.Get(Call) == "" {
-		return false
-	}
-	if r.Get(Frequency) == "" {
-		return false
-	}
-	if r.Get(TimeOn) == "" {
-		return false
-	}
-	return true
-}
-
 func (r Record) Copy() Record {
 	ret := Record{}
 	for _, v := range r {
