@@ -32,7 +32,7 @@ func SyncLOTWQSL(c *Config) error {
 				return nil
 			}
 			for _, rec := range alog.Records {
-				if !rec.IsValid() {
+				if !adif.IsValid(rec) {
 					continue
 				}
 				dateStr := rec.Get(adif.QSODateStart)

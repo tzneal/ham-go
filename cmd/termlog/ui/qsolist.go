@@ -154,7 +154,7 @@ func (q *QSOList) Redraw() {
 			Clear(0, curLine, w-1, curLine, fg, bg)
 
 			xPos := 0
-			if !rec.IsValid() {
+			if adif.ValidateADIFRecord(rec) != nil {
 				DrawText(xPos, curLine, "*", termbox.ColorRed, bg)
 			}
 			xPos += 2
