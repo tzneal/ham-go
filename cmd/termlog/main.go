@@ -26,6 +26,8 @@ import (
 func main() {
 	colorTest := flag.Bool("color-test", false, "display a color test")
 	indexAdifs := flag.Bool("index", false, "index the ADIF files passed in on the command line")
+	importAdifs := flag.Bool("import", false, `import missing records from the ADIF files passed in on the command line into the current default log file that 
+have occurred *after* the oldest record in the current logfile`)
 	search := flag.String("search", "", "search the indexed ADIF files and print the results")
 	hamlibList := flag.Bool("hamlib-list", false, "list the supported libhamlib devices")
 	noRig := flag.Bool("no-rig", false, "disable rig control, even if enabled in the config file")
@@ -136,20 +138,6 @@ func main() {
 		return
 	}
 
-	// are we connected to a radio?
-	var rc *rig.RigCache
-	var rigConnectError error
-	if cfg.Rig.Enabled && !*noRig {
-		goHamlib.SetDebugLevel(goHamlib.DebugErr)
-		grig, err := newRig(cfg.Rig)
-		if err != nil {
-			rigConnectError = err
-		} else {
-			defer grig.Close()
-			rc = rig.NewRigCache(grig, 2*time.Second)
-		}
-	}
-
 	var alog *adif.Log
 	if *logOverride != "" {
 		alog, err = adif.ParseFile(*logOverride)
@@ -176,18 +164,22 @@ func main() {
 		if err != nil {
 			alog = adif.NewLog()
 			alog.Filename = fn
+			// set the header data
+			alog.SetHeader(adif.MyName, cfg.Operator.Name)
+			alog.SetHeader(adif.MyGridSquare, cfg.Operator.Grid)
+			alog.SetHeader(adif.MyCity, cfg.Operator.City)
+			alog.SetHeader(adif.MyState, cfg.Operator.State)
+			alog.SetHeader(adif.MyCounty, cfg.Operator.County)
+			alog.SetHeader(adif.MyCountry, cfg.Operator.Country)
+			alog.SetHeader(adif.Operator, cfg.Operator.Call)
 			alog.Save()
 		}
 	}
 
-	// set the header data
-	alog.SetHeader(adif.MyName, cfg.Operator.Name)
-	alog.SetHeader(adif.MyGridSquare, cfg.Operator.Grid)
-	alog.SetHeader(adif.MyCity, cfg.Operator.City)
-	alog.SetHeader(adif.MyState, cfg.Operator.State)
-	alog.SetHeader(adif.MyCounty, cfg.Operator.County)
-	alog.SetHeader(adif.MyCountry, cfg.Operator.Country)
-	alog.SetHeader(adif.Operator, cfg.Operator.Call)
+	if *importAdifs {
+		ImportAdifs(flag.Args(), alog)
+		return
+	}
 
 	logRepo, _ := git.PlainOpenWithOptions(logDir, &git.PlainOpenOptions{DetectDotGit: true})
 	if cfg.Operator.GitPullOnStartup && !cfg.noNet {
@@ -206,6 +198,20 @@ func main() {
 			default:
 				log.Printf("error pulling logs: %s", err)
 			}
+		}
+	}
+
+	// are we connected to a radio?
+	var rc *rig.RigCache
+	var rigConnectError error
+	if cfg.Rig.Enabled && !*noRig {
+		goHamlib.SetDebugLevel(goHamlib.DebugErr)
+		grig, err := newRig(cfg.Rig)
+		if err != nil {
+			rigConnectError = err
+		} else {
+			defer grig.Close()
+			rc = rig.NewRigCache(grig, 2*time.Second)
 		}
 	}
 

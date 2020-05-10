@@ -3,6 +3,7 @@ package adif
 import (
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 )
 
@@ -46,4 +47,18 @@ func (r Record) Copy() Record {
 		ret = append(ret, v)
 	}
 	return ret
+}
+
+func (r Record) Matches(other Record) bool {
+	if r.Get(Call) != other.Get(Call) {
+		return false
+	}
+	if r.Get(QSODateStart) != other.Get(QSODateStart) {
+		return false
+	}
+	freqDiff := math.Abs(r.GetFloat(Frequency) - other.GetFloat(Frequency))
+	if freqDiff > 0.01 {
+		return false
+	}
+	return true
 }
