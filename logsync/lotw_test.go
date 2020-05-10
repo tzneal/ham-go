@@ -8,7 +8,7 @@ func TestLOTW(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error retrieving log: %s", err)
 	}
-	for rec := range log.Records {
+	for rec := range log.records {
 		fmt.Println(rec)
 	}
 }
@@ -20,7 +20,7 @@ func TestLOTWSave(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error parsing log: %s", err)
 	}
-	rec := alog.Records[0]
+	rec := alog.records[0]
 
 	c := logsync.NewLOTWClient("", "", "/usr/local/bin/tqsl")
 	if err := c.UploadQSO(rec); err != nil {

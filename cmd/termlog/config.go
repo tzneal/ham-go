@@ -8,6 +8,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 
+	"github.com/tzneal/ham-go/adif"
 	"github.com/tzneal/ham-go/callsigns"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
 	"github.com/tzneal/ham-go/spotting"
@@ -118,6 +119,17 @@ func (c *Config) SaveAs(filename string) error {
 	defer f.Close()
 	enc := toml.NewEncoder(f)
 	return enc.Encode(c)
+}
+
+// AddHeadersToLog adds confifgured operator headers to a log file
+func (c *Config) AddHeadersToLog(alog *adif.Log) {
+	alog.SetHeader(adif.MyName, c.Operator.Name)
+	alog.SetHeader(adif.MyGridSquare, c.Operator.Grid)
+	alog.SetHeader(adif.MyCity, c.Operator.City)
+	alog.SetHeader(adif.MyState, c.Operator.State)
+	alog.SetHeader(adif.MyCounty, c.Operator.County)
+	alog.SetHeader(adif.MyCountry, c.Operator.Country)
+	alog.SetHeader(adif.Operator, c.Operator.Call)
 }
 
 // WSJTX controls WJSTX logging

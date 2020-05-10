@@ -10,7 +10,7 @@ import (
 func ImportAdifs(filenames []string, dst *adif.Log) {
 	have := map[string][]adif.Record{}
 	oldestDate := time.Now()
-	for _, r := range dst.Records {
+	for _, r := range dst.Records() {
 		have[r.Get(adif.Call)] = append(have[r.Get(adif.Call)], r)
 		date, err := time.Parse("20060102", r.Get(adif.QSODateStart))
 		if err == nil && date.Before(oldestDate) {
@@ -26,7 +26,7 @@ func ImportAdifs(filenames []string, dst *adif.Log) {
 		if err != nil {
 			log.Printf("error parsing %s: %s", f, err)
 		}
-		for _, r := range ad.Records {
+		for _, r := range ad.Records() {
 			date, err := time.Parse("20060102", r.Get(adif.QSODateStart))
 			if err != nil {
 				continue
@@ -42,7 +42,7 @@ func ImportAdifs(filenames []string, dst *adif.Log) {
 			}
 			if !haveRecord {
 				nAdded++
-				dst.Records = append(dst.Records, r)
+				dst.AddRecord(r)
 				dirtyLog = true
 			}
 		}

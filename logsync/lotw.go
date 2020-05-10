@@ -66,7 +66,7 @@ func (c LOTWClient) QSLReport(since time.Time) (*adif.Log, error) {
 // UploadQSOs uploads a batch of QSOs to LOTW using the tqsl command
 func (c LOTWClient) UploadQSOs(records []adif.Record) error {
 	alog := adif.NewLog()
-	alog.Records = append(alog.Records, records...)
+	alog.AddRecords(records)
 	tf, err := ioutil.TempFile("", "lotwupload")
 	if err != nil {
 		return err

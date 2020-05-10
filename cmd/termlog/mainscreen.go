@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -391,7 +392,7 @@ func (m *mainScreen) logRoutine() {
 				rec.record = m.logToLOTW(rec.record)
 			}
 
-			m.alog.Records = append(m.alog.Records, rec.record)
+			m.alog.AddRecord(rec.record)
 			m.alog.Save()
 
 			// index the QSO so we can quickly identify if we've seen it before
@@ -481,7 +482,7 @@ func (m *mainScreen) exportCabrillo() {
 	cl.ClaimedScore, ok = ui.InputInteger(m.controller, "Claimed Score")
 
 	cl.Operators = m.cfg.Operator.Call
-	for _, v := range m.alog.Records {
+	for _, v := range m.alog.Records() {
 		cl.QSOS = append(cl.QSOS, AdifToCabrillo(v, m.cfg))
 	}
 	cl.WriteToFile(exportFilename)
@@ -566,9 +567,22 @@ func (m *mainScreen) commitLogWithMessage(commitMsg string) {
 			return
 		}
 
-		// do we need to commit th elog?
-		fs := st.File(strings.Replace(fileNameInRepo, wt.Filesystem.Root(), "", 1))
-		if fs.Worktree != git.Modified && fs.Worktree != git.Added {
+		ci, err := m.repo.Log(&git.LogOptions{
+			FileName: &fileNameInRepo,
+		})
+
+		// easiest way I've found to determine if the file is already in the repo is to check it's
+		// commit history
+		existsInRepo := false
+		ci.ForEach(func(c *object.Commit) error {
+			existsInRepo = true
+			return errors.New("finished")
+		})
+
+		fs := st.File(fileNameInRepo)
+
+		// file exists in repo already, but is not modified, so don't commit
+		if fs.Worktree != git.Modified && fs.Worktree != git.Added && existsInRepo {
 			m.logInfo("current log not modified, skipping commit")
 			return
 		}
@@ -683,7 +697,7 @@ func (m *mainScreen) saveQSO() {
 		rec := m.qso.GetRecord()
 		if m.editingQSO {
 			idx := m.qsoList.SelectedIndex()
-			m.alog.Records[idx] = rec
+			m.alog.ReplaceRecord(idx, rec)
 			m.alog.Save()
 		} else {
 			m.toBeLogged <- logRequest{record: rec.Copy()}
@@ -773,8 +787,8 @@ func (m *mainScreen) pollForLogs() {
 		case rec := <-m.fldigiLog.Messages:
 			rdr := strings.NewReader("<eoh>\n" + rec)
 			alog, err := adif.Parse(rdr)
-			if err == nil && len(alog.Records) == 1 {
-				arec := alog.Records[0]
+			if err == nil && alog.NumRecords() == 1 {
+				arec, _ := alog.GetRecord(0)
 				m.logInfo("received QSO from fldigi: %s %s", arec.Get(adif.Call), arec.Get(adif.AMode))
 				m.toBeLogged <- logRequest{record: arec, external: true}
 			}
@@ -787,8 +801,8 @@ func (m *mainScreen) pollForLogs() {
 			if rec.Type == "LOG.QSO" {
 				rdr := strings.NewReader("<eoh>\n" + rec.Value)
 				alog, err := adif.Parse(rdr)
-				if err == nil && len(alog.Records) == 1 {
-					arec := alog.Records[0]
+				if err == nil && alog.NumRecords() == 1 {
+					arec, _ := alog.GetRecord(0)
 					m.logInfo("received QSO from JS8Call: %s %s", arec.Get(adif.Call), arec.Get(adif.AMode))
 					m.toBeLogged <- logRequest{record: arec, external: true}
 				}

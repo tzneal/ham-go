@@ -31,7 +31,7 @@ func SyncLOTWQSL(c *Config) error {
 				log.Printf("error parsing %s: %s", path, err)
 				return nil
 			}
-			for _, rec := range alog.Records {
+			for _, rec := range alog.Records() {
 				if !adif.IsValid(rec) {
 					continue
 				}
@@ -70,7 +70,7 @@ func SyncLOTWQSL(c *Config) error {
 		date string
 	}
 	qslmap := map[key]adif.Record{}
-	for _, q := range qsls.Records {
+	for _, q := range qsls.Records() {
 		qslmap[key{
 			q.Get(adif.Call),
 			q.Get(adif.QSODateStart),
@@ -81,7 +81,7 @@ func SyncLOTWQSL(c *Config) error {
 	totQSLs := 0
 	for _, alog := range logs {
 		updated := false
-		for i, rec := range alog.Records {
+		for i, rec := range alog.Records() {
 			// already have a QSL
 			if rec.Get(adif.LOTWReceived) == "Y" {
 				continue
@@ -101,23 +101,27 @@ func SyncLOTWQSL(c *Config) error {
 				continue
 			}
 
+			mrec, _ := alog.GetRecord(i)
+
 			// same callsign, same date, frequency within 10 hz
-			alog.Records[i] = append(alog.Records[i], adif.Field{
+			mrec = append(mrec, adif.Field{
 				Name:  adif.LOTWReceived,
 				Value: "Y",
 			})
-			alog.Records[i] = append(alog.Records[i], adif.Field{
+			mrec = append(mrec, adif.Field{
 				Name:  adif.QSLReceived,
 				Value: "Y",
 			})
-			alog.Records[i] = append(alog.Records[i], adif.Field{
+			mrec = append(mrec, adif.Field{
 				Name:  adif.QSLReceivedDate,
 				Value: qrec.Get(adif.QSLReceivedDate),
 			})
-			alog.Records[i] = append(alog.Records[i], adif.Field{
+			mrec = append(mrec, adif.Field{
 				Name:  adif.LOTWReceivedDate,
 				Value: qrec.Get(adif.QSLReceivedDate),
 			})
+			alog.ReplaceRecord(i, mrec)
+
 			totQSLs += 1
 			updated = true
 		}

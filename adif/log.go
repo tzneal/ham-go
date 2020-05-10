@@ -1,94 +1,125 @@
 package adif
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"os"
 	"sort"
+	"sync"
 	"time"
+
+	"github.com/tzneal/ham-go"
 )
 
 type Log struct {
 	Filename string
-	Header   Record
-	Records  []Record
+	mu       sync.Mutex
+	header   Record
+	records  []Record
 }
 
 func NewLog() *Log {
 	l := &Log{}
-	l.Header = append(l.Header,
+	l.Reset()
+	return l
+}
+
+func (l *Log) Reset() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.reset()
+}
+
+func (l *Log) reset() {
+	l.records = nil
+	l.header = nil
+	l.Filename = ""
+	l.header = append(l.header,
 		Field{
 			Name:  AdifVersion,
 			Value: "3.0.8",
 		})
-	l.Header = append(l.Header,
+	l.header = append(l.header,
 		Field{
 			Name:  CreatedTimestamp,
 			Value: NowUTCTimestamp(),
 		})
-	l.Header = append(l.Header,
+	l.header = append(l.header,
 		Field{
 			Name:  ProgramID,
 			Value: "termlog",
 		})
-	l.Header = append(l.Header,
+	l.header = append(l.header,
 		Field{
 			Name:  ProgramVersion,
-			Value: "1.0",
+			Value: ham.Version,
 		})
-	return l
 }
-func (l Log) Write(w io.Writer) error {
-	for _, f := range l.Header {
+
+func (l *Log) write(w io.Writer) error {
+	for _, f := range l.header {
 		f.Write(w)
 	}
 	fmt.Fprint(w, "<eoh>\n\n")
 
-	for _, f := range l.Records {
+	for _, f := range l.records {
 		f.Write(w)
 	}
 	return nil
 }
+func (l *Log) Write(w io.Writer) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.write(w)
+}
 
 func (l *Log) SetHeader(key Identifier, value string) {
-	for i, h := range l.Header {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	for i, h := range l.header {
 		if h.Name == key {
-			l.Header[i].Value = value
+			l.header[i].Value = value
 			return
 		}
 	}
 
-	l.Header = append(l.Header, Field{
+	l.header = append(l.header, Field{
 		Name:  key,
 		Value: value,
 	})
 }
 
-func (l *Log) Normalize() {
-	for i := range l.Header {
-		l.Header[i].Normalize()
+func (l *Log) normalize() {
+	for i := range l.header {
+		l.header[i].Normalize()
 	}
-	l.Header = dropEmpty(l.Header)
-	for i := range l.Records {
-		l.Records[i].Normalize()
-		l.Records[i] = dropEmpty(l.Records[i])
+	l.header = dropEmpty(l.header)
+	for i := range l.records {
+		l.records[i].Normalize()
+		l.records[i] = dropEmpty(l.records[i])
 	}
 
 	// sort odlest to newest
-	sort.Slice(l.Records, func(a, b int) bool {
-		adate, erra := time.Parse("20060102", l.Records[a].Get(QSODateStart))
+	sort.Slice(l.records, func(a, b int) bool {
+		adate, erra := time.Parse("20060102", l.records[a].Get(QSODateStart))
 		if erra != nil {
 			return false
 		}
-		bdate, errb := time.Parse("20060102", l.Records[b].Get(QSODateStart))
+		bdate, errb := time.Parse("20060102", l.records[b].Get(QSODateStart))
 		if errb != nil {
 			return false
 		}
 		return adate.Before(bdate)
 	})
 }
+func (l *Log) Normalize() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.normalize()
+}
+
 func dropEmpty(r Record) Record {
 	ret := Record{}
 	for _, f := range r {
@@ -99,18 +130,78 @@ func dropEmpty(r Record) Record {
 	return ret
 }
 
-func (l *Log) Save() {
+func (l *Log) Save() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.save()
+}
+
+func (l *Log) save() error {
 	f, err := os.Create(l.Filename)
 	if err != nil {
-		fn, _ := ioutil.TempFile("", "adif")
-		tmpName := fn.Name()
-		fn.Close()
-		f, err = os.Create(tmpName)
-		defer func() {
-			log.Fatalf("unable to write to %s, saved as %s", l.Filename, tmpName)
-		}()
+		return err
 	}
-	l.Normalize()
+	l.normalize()
 	defer f.Close()
-	l.Write(f)
+	l.write(f)
+	return nil
+}
+
+func (l *Log) Records() []Record {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	cp := make([]Record, 0, len(l.records))
+	cp = append(cp, l.records...)
+	return cp
+}
+
+func (l *Log) NumRecords() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return len(l.records)
+}
+
+func (l *Log) GetRecord(i int) (Record, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if i >= 0 && i < len(l.records) {
+		return l.records[i], nil
+	}
+	return Record{}, errors.New("record not found")
+}
+
+func (l *Log) DeleteRecord(i int) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if i < 0 || i >= len(l.records) {
+		return errors.New("record index out of range")
+	}
+	l.records = append(l.records[:i], l.records[i+1:]...)
+	return nil
+}
+
+func (l *Log) AddRecord(record Record) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.records = append(l.records, record)
+}
+
+func (l *Log) AddRecords(records []Record) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.records = append(l.records, records...)
+}
+
+func (l *Log) ReplaceRecord(idx int, rec Record) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.records[idx] = rec
+}
+
+func (l *Log) Rollover(fn string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.reset()
+	l.Filename = fn
+	l.save()
 }

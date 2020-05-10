@@ -15,8 +15,8 @@ func TestParseLOTW(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
-	if len(alog.Records) != 135 {
-		t.Errorf("expected 135 records, got %d", len(alog.Records))
+	if alog.NumRecords() != 135 {
+		t.Errorf("expected 135 records, got %d", alog.NumRecords())
 	}
 
 }

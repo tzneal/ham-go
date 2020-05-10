@@ -23,10 +23,10 @@ func TestJS8MessageParseQSO(t *testing.T) {
 	if err != nil {
 		t.Errorf("error parsing ADIF: %s", err)
 	}
-	if len(lg.Records) != 1 {
+	if lg.NumRecords() != 1 {
 		t.Errorf("expected a single record")
 	}
-	rec := lg.Records[0]
+	rec, _ := lg.GetRecord(0)
 	if rec.Get(adif.Call) != "FAKE" {
 		t.Errorf("expected a call of 'FAKE', got '%s'", rec.Get(adif.Call))
 	}
