@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sort"
+	"time"
 )
 
 type Log struct {
@@ -73,6 +75,19 @@ func (l *Log) Normalize() {
 		l.Records[i].Normalize()
 		l.Records[i] = dropEmpty(l.Records[i])
 	}
+
+	// sort odlest to newest
+	sort.Slice(l.Records, func(a, b int) bool {
+		adate, erra := time.Parse("20060102", l.Records[a].Get(QSODateStart))
+		if erra != nil {
+			return false
+		}
+		bdate, errb := time.Parse("20060102", l.Records[b].Get(QSODateStart))
+		if errb != nil {
+			return false
+		}
+		return adate.Before(bdate)
+	})
 }
 func dropEmpty(r Record) Record {
 	ret := Record{}
