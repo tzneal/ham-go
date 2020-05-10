@@ -137,11 +137,13 @@ func (q *QSOList) Redraw() {
 	}
 
 	for line := 0; line < q.maxLines; line++ {
-		idx := len(q.log.Records) - line - 1 - q.offset
+		numRecords := q.log.NumRecords()
+		idx := numRecords - line - 1 - q.offset
 
+		records := q.log.Records()
 		curLine := q.yPos + line + 1
-		if idx >= 0 && idx < len(q.log.Records) {
-			rec := q.log.Records[idx]
+		if idx >= 0 && idx < numRecords {
+			rec := records[idx]
 			fg := termbox.ColorWhite
 			bg := termbox.ColorDefault
 
@@ -195,17 +197,21 @@ func (q *QSOList) Focus(b bool) {
 	if b {
 		termbox.HideCursor()
 	}
-	if b && q.onSelect != nil && q.selected >= 0 && q.selected < len(q.log.Records) {
+	if b && q.onSelect != nil && q.selected >= 0 && q.selected < q.log.NumRecords() {
 		q.onSelect(q.SelectedRecord())
 	}
 }
 
 func (q *QSOList) SelectedIndex() int {
-	return len(q.log.Records) - q.selected - 1
+	return q.log.NumRecords() - q.selected - 1
 }
 
 func (q *QSOList) SelectedRecord() adif.Record {
-	return q.log.Records[len(q.log.Records)-q.selected-1]
+	r, err := q.log.GetRecord(q.log.NumRecords() - q.selected - 1)
+	if err != nil {
+		return adif.Record{}
+	}
+	return r
 }
 func (q *QSOList) HandleEvent(key input.Key) {
 	raiseSelect := false
@@ -223,7 +229,7 @@ func (q *QSOList) HandleEvent(key input.Key) {
 			}
 		}
 	case input.KeyArrowDown:
-		if q.selected < len(q.log.Records)-1 {
+		if q.selected < q.log.NumRecords()-1 {
 			raiseSelect = true
 			q.selected++
 			if q.selected >= q.offset+q.maxLines {
@@ -240,24 +246,24 @@ func (q *QSOList) HandleEvent(key input.Key) {
 		}
 
 	case input.KeyDelete:
-		if q.selected >= 0 && q.selected < len(q.log.Records) {
+		if q.selected >= 0 && q.selected < q.log.NumRecords() {
 			rec := q.SelectedRecord()
 			if YesNoQuestion(fmt.Sprintf("Permanently delete this QSO (%s)?", rec.Get(adif.Call))) {
-				idx := len(q.log.Records) - q.selected - 1
-				q.log.Records = append(q.log.Records[:idx], q.log.Records[idx+1:]...)
+				idx := q.log.NumRecords() - q.selected - 1
+				q.log.DeleteRecord(idx)
 				q.log.Save()
 			}
 		}
 	}
 
 	// take care of fixing the index when deleting all the records
-	if q.selected >= len(q.log.Records) {
-		q.selected = len(q.log.Records) - 1
+	if q.selected >= q.log.NumRecords() {
+		q.selected = q.log.NumRecords() - 1
 	}
 	if q.selected < 0 {
 		q.selected = 0
 	}
-	if raiseSelect && q.onSelect != nil && q.selected >= 0 && q.selected < len(q.log.Records) {
+	if raiseSelect && q.onSelect != nil && q.selected >= 0 && q.selected < q.log.NumRecords() {
 		q.onSelect(q.SelectedRecord())
 	}
 }
@@ -277,10 +283,10 @@ func (q *QSOList) SetOperatorGrid(grid string) {
 
 func (q *QSOList) logStatus() string {
 	sb := strings.Builder{}
-	sb.WriteString(fmt.Sprintf("%d QSOs ", len(q.log.Records)))
+	sb.WriteString(fmt.Sprintf("%d QSOs ", q.log.NumRecords()))
 	bands := map[string]int{}
 	modes := map[string]int{}
-	for _, rec := range q.log.Records {
+	for _, rec := range q.log.Records() {
 		band := rec.Get(adif.ABand)
 		if band != "" {
 			bands[band] = bands[band] + 1
@@ -300,7 +306,7 @@ func (q *QSOList) logStatus() string {
 		}
 	}
 
-	if len(q.log.Records) > 0 {
+	if q.log.NumRecords() > 0 {
 		sb.WriteString(" | ")
 		// to ensure sorted output
 		for _, b := range adif.Bands {

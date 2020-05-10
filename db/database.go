@@ -97,7 +97,7 @@ func (d *Database) IndexAdif(filename string) (int, error) {
 		return 0, err
 	}
 	n := 0
-	for _, rec := range adi.Records {
+	for _, rec := range adi.Records() {
 		r, err := AdifToRecord(rec)
 		if err != nil {
 			log.Printf("error parsing time: %s", err)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -17,6 +18,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/dh1tw/goHamlib"
 	"github.com/go-git/go-git/v5"
+
 	"github.com/tzneal/ham-go"
 	"github.com/tzneal/ham-go/adif"
 	_ "github.com/tzneal/ham-go/callsigns/providers" // to register providers
@@ -162,16 +164,13 @@ have occurred *after* the oldest record in the current logfile`)
 		alog, err = adif.ParseFile(fn)
 		// not found/couldn't read it so create a new one
 		if err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				log.Fatalf("unable to read log file %s: %s", fn, err)
+			}
+
 			alog = adif.NewLog()
 			alog.Filename = fn
-			// set the header data
-			alog.SetHeader(adif.MyName, cfg.Operator.Name)
-			alog.SetHeader(adif.MyGridSquare, cfg.Operator.Grid)
-			alog.SetHeader(adif.MyCity, cfg.Operator.City)
-			alog.SetHeader(adif.MyState, cfg.Operator.State)
-			alog.SetHeader(adif.MyCounty, cfg.Operator.County)
-			alog.SetHeader(adif.MyCountry, cfg.Operator.Country)
-			alog.SetHeader(adif.Operator, cfg.Operator.Call)
+			cfg.AddHeadersToLog(alog)
 			alog.Save()
 		}
 	}
@@ -250,6 +249,28 @@ have occurred *after* the oldest record in the current logfile`)
 		}
 	}
 
+	// watch for log file name change
+	if cfg.Operator.DateBasedLogging {
+		go func() {
+			for {
+				select {
+				case <-mainScreen.shutdown:
+					return
+				case <-time.After(1 * time.Second):
+					fn := fmt.Sprintf(expandPath("%s/%s.adif"), logDir, time.Now().Format(cfg.Operator.DateBasedLogFormat))
+					if fn != alog.Filename {
+						mainScreen.logInfo("rolling over to new log %s", fn)
+						if cfg.Operator.GitCommitOnExit {
+							mainScreen.commitLogWithMessage("log rollover")
+						}
+						// log filename changed, so rollover to a new log
+						alog.Rollover(fn)
+						cfg.AddHeadersToLog(alog)
+					}
+				}
+			}
+		}()
+	}
 	for mainScreen.Tick() {
 
 	}

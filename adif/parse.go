@@ -31,9 +31,11 @@ func ParseFile(filename string) (*Log, error) {
 	defer f.Close()
 	p := &parser{}
 	l, err := p.parse(f)
+	if err != nil {
+		return nil, err
+	}
 	l.Filename = filename
-	return l, err
-
+	return l, nil
 }
 
 // ParseString parses an ADIF record from a string
@@ -75,7 +77,7 @@ lfor:
 					return nil, err
 				}
 				field.Normalize()
-				log.Header = append(log.Header, field)
+				log.header = append(log.header, field)
 			case tokenEOF:
 				return nil, errors.New("reached end of file without seeing <EOH>")
 			default:
@@ -90,14 +92,14 @@ lfor:
 				// this is what JS8Call sends
 				if len(record) != 0 {
 					record.Normalize()
-					log.Records = append(log.Records, record)
+					log.records = append(log.records, record)
 					record = Record{}
 				}
 				break lfor
 			case tokenEOR:
 				p.read() // skip it
 				record.Normalize()
-				log.Records = append(log.Records, record)
+				log.records = append(log.records, record)
 				record = Record{}
 			case tokenLAngle:
 				if comments.Len() != 0 {
