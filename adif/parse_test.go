@@ -18,5 +18,50 @@ func TestParseLOTW(t *testing.T) {
 	if alog.NumRecords() != 135 {
 		t.Errorf("expected 135 records, got %d", alog.NumRecords())
 	}
+}
 
+func TestParseADIFTime(t *testing.T) {
+	const sample = `<adif_ver:5>3.0.8
+<created_timestamp:14>20200501 11:14
+<programid:7>termlog
+<programversion:3>1.0
+<my_name:9>Todd Neal
+<my_gridsquare:6>EM64or
+<my_city:7>Madison
+<my_state:2>AL
+<my_cnty:7>Madison
+<my_country:13>United States
+<operator:5>W4TNL
+<eoh>
+
+<qso_date:8>20200501
+<time_on:6>134752
+<qso_date_off:8>20200501
+<time_off:4>1347
+<call:5>N8OYY
+<mode:3>FT8
+<freq:8>7.075333
+<band:3>40m
+<rst_sent:3>-10
+<rst_rcvd:3>-04
+<gridsquare:4>EM99
+<tx_pwr:3>60W
+<name:18>EDWARD J MESSENGER
+<country:13>United States
+<dxcc:3>291
+<eor>
+`
+	alog, err := adif.ParseString(sample)
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if alog.NumRecords() != 1 {
+		t.Fatalf("expected one record, got %d", alog.NumRecords())
+	}
+
+	rec, err := alog.GetRecord(0)
+	if err != nil {
+		t.Fatalf("expected no error, got %s", err)
+	}
+	_ = rec
 }

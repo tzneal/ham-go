@@ -81,9 +81,11 @@ func AdifToRecord(rec adif.Record) (Record, error) {
 	timeOn := rec.Get(adif.QSODateStart) + " " + rec.Get(adif.TimeOn)
 	t, err := time.Parse("20060102 1504", timeOn)
 	if err != nil {
-		return Record{}, err
+		t, err = time.Parse("20060102 150405", timeOn)
+		if err != nil {
+			return Record{}, err
+		}
 	}
-
 	return Record{
 		Call:      rec.Get(adif.Call),
 		Frequency: rec.GetFloat(adif.Frequency),
@@ -100,7 +102,7 @@ func (d *Database) IndexAdif(filename string) (int, error) {
 	for _, rec := range adi.Records() {
 		r, err := AdifToRecord(rec)
 		if err != nil {
-			log.Printf("error parsing time: %s", err)
+			log.Printf("error parsing: %s", err)
 			continue
 		}
 		if err := d.AddRecord(r); err == nil {
