@@ -20,15 +20,15 @@ features I need/want.
 ### Linux x64
     ```
     sudo apt-get install -y libhamlib2
-    sudo wget https://github.com/tzneal/ham-go/releases/download/v0.1.0/termlog.amd64 -O /usr/bin/termlog
+    sudo wget https://github.com/tzneal/ham-go/releases/download/v0.2.0/termlog.amd64 -O /usr/bin/termlog
     sudo chmod a+x /usr/bin/termlog
     /usr/bin/termlog --upgrade-config
     ```
     
-### Linux/32 bit ARM (Raspbery Pi)
+### Linux/32 bit ARM (Raspberry Pi)
 ```
 sudo apt-get install -y libhamlib2
-sudo wget https://github.com/tzneal/ham-go/releases/download/v0.1.0/termlog.arm -O /usr/bin/termlog
+sudo wget https://github.com/tzneal/ham-go/releases/download/v0.2.0/termlog.arm -O /usr/bin/termlog
 sudo chmod a+x /usr/bin/termlog
 /usr/bin/termlog --upgrade-config
 ```
@@ -36,7 +36,7 @@ sudo chmod a+x /usr/bin/termlog
 ### Linux/64 bit ARM
 ```
 sudo apt-get install -y libhamlib2
-sudo wget https://github.com/tzneal/ham-go/releases/download/v0.1.0/termlog.arm64 -O /usr/bin/termlog
+sudo wget https://github.com/tzneal/ham-go/releases/download/v0.2.0/termlog.arm64 -O /usr/bin/termlog
 sudo chmod a+x /usr/bin/termlog
 /usr/bin/termlog --upgrade-config
 ```
