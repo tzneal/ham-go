@@ -7,7 +7,6 @@ import (
 	"os"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/tzneal/ham-go"
 )
@@ -101,13 +100,13 @@ func (l *Log) normalize() {
 		l.records[i] = dropEmpty(l.records[i])
 	}
 
-	// sort odlest to newest
+	// sort oldest to newest
 	sort.Slice(l.records, func(a, b int) bool {
-		adate, erra := time.Parse("20060102", l.records[a].Get(QSODateStart))
+		adate, erra := l.records[a].GetTimeOn()
 		if erra != nil {
 			return false
 		}
-		bdate, errb := time.Parse("20060102", l.records[b].Get(QSODateStart))
+		bdate, errb := l.records[b].GetTimeOn()
 		if errb != nil {
 			return false
 		}

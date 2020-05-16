@@ -500,13 +500,9 @@ func AdifToCabrillo(v adif.Record, cfg *Config) cabrillo.QSO {
 		qso.Mode = v.Get(adif.AMode)
 	}
 
-	timeOn := v.Get(adif.QSODateStart) + " " + v.Get(adif.TimeOn)
-	t, err := time.Parse("20060102 1504", timeOn)
+	t, err := v.GetTimeOn()
 	if err != nil {
-		t, err = time.Parse("20060102 150405", timeOn)
-		if err != nil {
-			log.Printf("error parsing time on: %s", err)
-		}
+		log.Printf("error parsing time on: %s", err)
 	}
 	qso.Timestamp = t
 	qso.SentCall = cfg.Operator.Call

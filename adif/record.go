@@ -5,6 +5,7 @@ import (
 	"io"
 	"math"
 	"strconv"
+	"time"
 )
 
 type Record []Field
@@ -61,4 +62,16 @@ func (r Record) Matches(other Record) bool {
 		return false
 	}
 	return true
+}
+
+func (r Record) GetTimeOn() (time.Time, error) {
+	timeOn := r.Get(QSODateStart) + " " + r.Get(TimeOn)
+	t, err := time.Parse("20060102 1504", timeOn)
+	if err != nil {
+		t, err = time.Parse("20060102 150405", timeOn)
+		if err != nil {
+			return time.Time{}, err
+		}
+	}
+	return t, nil
 }

@@ -35,8 +35,7 @@ func SyncLOTWQSL(c *Config) error {
 				if !adif.IsValid(rec) {
 					continue
 				}
-				dateStr := rec.Get(adif.QSODateStart)
-				date, err := time.Parse("20060102", dateStr)
+				date, err := rec.GetTimeOn()
 				if err != nil {
 					log.Printf("error parsing QSO date: %s", err)
 					continue
