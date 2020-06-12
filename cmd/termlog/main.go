@@ -109,6 +109,11 @@ have occurred *after* the oldest record in the current logfile`)
 		os.MkdirAll(logDir, 0755)
 	}
 
+	// ensure the log directory is a git repo - panics at logRepo.Worktree() without it
+	if !ham.FileOrDirectoryExists(filepath.Join(logDir, ".git")) {
+		log.Fatalf("%s must be initialized as a git repository", logDir)
+	}
+
 	d, err := db.Open(filepath.Join(expandPath(cfg.Operator.Logdir), "indexed.db"))
 	if err != nil {
 		log.Fatalf("error opening/creating indexed logs: %s", err)
