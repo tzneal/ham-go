@@ -75,6 +75,11 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	sb.AddClock("Local")
 	sb.AddText("/")
 	sb.AddClock("UTC")
+	if cfg.Operator.Sig != "" && cfg.Operator.SigInfo != "" {
+		sb.AddText("/")
+		sb.AddText(cfg.Operator.Sig)
+		sb.AddText(cfg.Operator.SigInfo)
+	}
 	c.AddWidget(sb)
 	yPos++
 	remainingHeight--
@@ -386,6 +391,14 @@ func (m *mainScreen) logRoutine() {
 					}
 				}
 			}
+
+			if m.cfg.Operator.Sig != "" {
+				rec.record = append(rec.record, adif.Field{Name: adif.MySIG, Value: m.cfg.Operator.Sig})
+			}
+			if m.cfg.Operator.SigInfo != "" {
+				rec.record = append(rec.record, adif.Field{Name: adif.MySIGInfo, Value: m.cfg.Operator.SigInfo})
+			}
+
 			// upload to LoTW?
 			if !m.cfg.noNet && m.cfg.Operator.LOTWAutoUpload {
 				// possibly adds new fields if successful

@@ -9,6 +9,8 @@
     city = "MyCity"
     state = "MyState"
     country = "United States"
+    sig = "MySig"
+    sigInfo = "MySigInfo"
     logdir = "~/ham-logs/"
 
  [rig]
