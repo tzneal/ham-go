@@ -24,6 +24,8 @@ type Operator struct {
 	County  string
 	State   string
 	Country string
+	Sig     string
+	SigInfo string
 	// GIT related
 	GitPushAfterCommit bool   // If true, push to the log repository after committing the logs
 	GitKey             string // Path to the git key to use (e.g. ~/.ssh/id_rsa)
