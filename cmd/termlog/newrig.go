@@ -32,7 +32,12 @@ func newRig(cfg Rig) (*goHamlib.Rig, error) {
 	p.Baudrate = cfg.BaudRate
 	p.Databits = cfg.DataBits
 	p.Stopbits = cfg.StopBits
-	p.Parity = goHamlib.ParityNone // TODO: make configurable
+	p.Parity = goHamlib.ParityNone
+	if strings.ToLower(cfg.Parity) == "even" {
+		p.Parity = goHamlib.ParityEven
+	} else if strings.ToLower(cfg.Parity) == "odd" {
+		p.Parity = goHamlib.ParityOdd
+	}
 	p.Handshake = goHamlib.HandshakeNone
 	if isHostPort(cfg.Port) {
 		p.RigPortType = goHamlib.RigPortNetwork
