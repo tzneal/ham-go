@@ -53,6 +53,7 @@ type Rig struct {
 	BaudRate     int
 	DataBits     int
 	StopBits     int
+	Parity       string
 }
 
 // DXCluster allows enabled DXCluster monitoring
