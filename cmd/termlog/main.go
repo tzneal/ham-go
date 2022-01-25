@@ -185,8 +185,10 @@ have occurred *after* the oldest record in the current logfile`)
 		return
 	}
 
-	logRepo, _ := git.PlainOpenWithOptions(logDir, &git.PlainOpenOptions{DetectDotGit: true})
-	if cfg.Operator.GitPullOnStartup && !cfg.noNet {
+	logRepo, err := git.PlainOpenWithOptions(logDir, &git.PlainOpenOptions{DetectDotGit: true})
+	if err != nil {
+		log.Printf("error opening git repo: %s", err)
+	} else if cfg.Operator.GitPullOnStartup && !cfg.noNet {
 		wt, err := logRepo.Worktree()
 		if err != nil {
 			log.Printf("error pulling logs: %s", err)
