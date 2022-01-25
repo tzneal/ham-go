@@ -1,4 +1,4 @@
-FROM golang:1.13-buster
+FROM golang:1.17-buster
 
 RUN dpkg --add-architecture arm64 \
     && apt update \
