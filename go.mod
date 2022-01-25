@@ -3,9 +3,9 @@ module github.com/tzneal/ham-go
 go 1.14
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v1.0.0
 	github.com/cgrates/ltcache v0.0.0-20181016092649-92fb7fa77cca
-	github.com/dh1tw/goHamlib v0.0.0-20181218214755-d4da0f6f14c2
+	github.com/dh1tw/goHamlib v0.0.0-20210309231416-3752aec70bb9
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-git/go-git/v5 v5.0.0
 	github.com/mattn/go-runewidth v0.0.9 // indirect
