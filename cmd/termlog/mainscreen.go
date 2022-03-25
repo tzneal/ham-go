@@ -27,6 +27,7 @@ import (
 	"github.com/tzneal/ham-go/logingest"
 	"github.com/tzneal/ham-go/logsync"
 	"github.com/tzneal/ham-go/rig"
+	"github.com/tzneal/ham-go/solar"
 	"github.com/tzneal/ham-go/spotting"
 )
 
@@ -49,6 +50,7 @@ type mainScreen struct {
 	shutdown        chan struct{}
 	lookup          callsigns.Lookup
 	loggingReplaced bool
+	solar           *solar.Solar
 }
 type logRequest struct {
 	record   adif.Record
@@ -109,7 +111,8 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 
 	// is the spot monitoring enabled?
 	shutdown := make(chan struct{})
-	if !cfg.noNet && (cfg.DXCluster.Enabled || cfg.POTASpot.Enabled) {
+	if !cfg.noNet && (cfg.DXCluster.Enabled || cfg.POTASpot.Enabled ||
+		cfg.SOTASpot.Enabled) {
 		// create the UI
 		dxHeight := remainingHeight - 1 - msgHeight // -1 due to status bar
 		spotlist := ui.NewSpottingList(yPos, dxHeight, time.Duration(cfg.Operator.SpotExpiration)*time.Second, cfg.Theme)
@@ -330,6 +333,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 			ms.js8log.Run()
 		}
 	}
+
 	if cfg.FLLog.Enabled {
 		fldigiLog, err := logingest.NewFLDIGIServer(cfg.FLLog.Address)
 		if err != nil {
@@ -339,6 +343,25 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 			ms.fldigiLog = fldigiLog
 			ms.fldigiLog.Run()
 		}
+	}
+
+	if !cfg.noNet && cfg.HamQSL.Enabled {
+		hcfg := solar.HamQSLConfig{
+			URL: cfg.HamQSL.URL,
+		}
+		hclient := solar.NewHamQSLClient(hcfg)
+		hclient.Run()
+		go func() {
+			for {
+				select {
+				case <-shutdown:
+					return
+				case s := <-hclient.Solar:
+					ms.solar = &s
+					_ = s
+				}
+			}
+		}()
 	}
 
 	c.AddCommand(input.KeyCtrlH, ms.showHelp)
@@ -351,6 +374,7 @@ func newMainScreen(cfg *Config, alog *adif.Log, repo *git.Repository, bookmarks 
 	c.AddCommand(input.KeyCtrlG, ms.commitLog)
 	c.AddCommand(input.KeyCtrlR, ms.redrawAll)
 	c.AddCommand(input.KeyCtrlX, ms.exportCabrillo)
+	c.AddCommand(input.KeyCtrlC, ms.showConditions)
 
 	c.AddCommand(input.KeyCtrlE, ms.executeCommands)
 	c.AddCommand(input.KeyAltLeft, ms.tuneLeft)
@@ -704,6 +728,7 @@ func (m *mainScreen) newQSO() {
 func (m *mainScreen) focusQSOList() {
 	m.controller.Focus(m.qsoList)
 }
+
 func (m *mainScreen) saveQSO() {
 	if m.qso.IsValid() || ui.YesNoQuestion("Missing callsign or frequency, save anyway?") {
 		rec := m.qso.GetRecord()
@@ -718,6 +743,36 @@ func (m *mainScreen) saveQSO() {
 			m.controller.Focus(m.qso)
 		}
 	}
+}
+
+func (m *mainScreen) showConditions() {
+	sb := strings.Builder{}
+
+	formatDate := m.solar.SolarData.Updated.Format("01-02-2006 15:04:05")
+	sb.WriteString(fmt.Sprintf("%s UTC\n", formatDate))
+	sb.WriteString("\n")
+	sb.WriteString(fmt.Sprintf("Sunspots:     %d\n", m.solar.SolarData.Sunspots))
+	sb.WriteString(fmt.Sprintf("Solar Flux:   %d\n", m.solar.SolarData.SolarFlux))
+	sb.WriteString(fmt.Sprintf("MUF:          %0.2f MHz\n", m.solar.SolarData.MUF))
+	sb.WriteString(fmt.Sprintf("K Index:      %d\n", m.solar.SolarData.KIndex))
+	sb.WriteString(fmt.Sprintf("A Index:      %d\n", m.solar.SolarData.AIndex))
+	sb.WriteString(fmt.Sprintf("Signal Noise: %s\n", m.solar.SolarData.SignalNoise))
+	sb.WriteString("\n")
+	for _, band := range m.solar.SolarData.CalculatedConditions.Bands {
+		// Add spaces to day to make as long as night
+		timeStr := band.Time
+		spacesToAdd := 5 - len(timeStr)
+		for i := 0; i < spacesToAdd; i++ {
+			timeStr += " "
+		}
+		sb.WriteString(fmt.Sprintf("%s %s\t%s", band.Name, timeStr, band.Condition))
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("\n")
+	sb.WriteString("Press ESC to close")
+	ui.Splash("Conditions", sb.String())
+
 }
 
 func (m *mainScreen) showHelp() {
@@ -739,12 +794,12 @@ func (m *mainScreen) showHelp() {
 	sb.WriteString("Ctrl+E    - Display Custom Commands\n")
 	sb.WriteString("Ctrl+G    - Commit log file to git\n")
 	sb.WriteString("Ctrl+R    - Force Screen Redraw\n")
-	sb.WriteString("ALt+Left  - Tune Down\n")
-	sb.WriteString("ALt+Right - Tune Up\n")
+	sb.WriteString("Alt+Left  - Tune Down\n")
+	sb.WriteString("Alt+Right - Tune Up\n")
+	sb.WriteString("Ctrl+C    - Show Band Conditions\n")
 	sb.WriteString("\n")
 	sb.WriteString("Press ESC to close")
 	ui.Splash("Commands", sb.String())
-
 }
 
 func (m *mainScreen) Tick() bool {

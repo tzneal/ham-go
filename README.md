@@ -122,6 +122,7 @@ Usage of ./termlog:
 | Ctrl+R    | Force screen redraw |
 | Alt+Left  | Tune down 500khz |
 | Alt+Right | Tune up 500khz |
+| Ctrl+C    | Show band conditions |
 
 ## adif
 

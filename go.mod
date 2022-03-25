@@ -11,6 +11,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/nsf/termbox-go v0.0.0-20200418040025-38ba6e5628f1
 	github.com/pd0mz/go-maidenhead v0.0.0-20170221185439-faa09c24425e
+	github.com/stretchr/testify v1.7.0 // indirect
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79 // indirect
 	golang.org/x/net v0.0.0-20200501053045-e0ff5e5a1de5 // indirect

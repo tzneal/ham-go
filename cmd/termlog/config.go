@@ -11,6 +11,7 @@ import (
 	"github.com/tzneal/ham-go/adif"
 	"github.com/tzneal/ham-go/callsigns"
 	"github.com/tzneal/ham-go/cmd/termlog/ui"
+	"github.com/tzneal/ham-go/solar"
 	"github.com/tzneal/ham-go/spotting"
 )
 
@@ -79,6 +80,12 @@ type SOTASpot struct {
 	URL     string
 }
 
+// HamQSL allows solar condition monitoring
+type HamQSL struct {
+	Enabled bool
+	URL     string
+}
+
 // Label is a label that will be displayed when tuned to a particular frequency.
 // The start/end are the limits.
 type Label struct {
@@ -99,6 +106,7 @@ type Config struct {
 	DXCluster  DXCluster
 	POTASpot   POTASpot
 	SOTASpot   SOTASpot
+	HamQSL     HamQSL
 	Theme      ui.Theme
 	Label      []Label
 	noNet      bool // lowercase, so it shouldn't be serialized
@@ -208,6 +216,9 @@ func NewConfig() *Config {
 
 	cfg.SOTASpot.Enabled = true
 	cfg.SOTASpot.URL = spotting.SOTAURL
+
+	cfg.HamQSL.Enabled = true
+	cfg.HamQSL.URL = solar.HAMQSL_URL
 
 	// 160 meters
 	cfg.Label = append(cfg.Label, Label{
