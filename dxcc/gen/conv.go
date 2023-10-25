@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/elliotwutingfeng/asciiset"
 )
 
 // reads cty.csv from http://www.country-files.com/
@@ -97,20 +99,21 @@ func splitPrefixes(pfx string) string {
 
 func prefixRegexp(pfx string) string {
 
-	initialChars := map[byte]struct{}{}
+	initialChars, _ := asciiset.MakeASCIISet("")
 	pfx = strings.Replace(pfx, ";", "", -1)
 	for _, p := range strings.Split(pfx, " ") {
 		switch p[0] {
 		case '=':
-			initialChars[p[1]] = struct{}{}
+			initialChars.Add(p[1])
 		default:
-			initialChars[p[0]] = struct{}{}
+			initialChars.Add(p[0])
 		}
 	}
 	var sorted []byte
-	for c := range initialChars {
+	initialChars.Visit(func(c byte) bool {
 		sorted = append(sorted, c)
-	}
+		return false
+	})
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i] < sorted[j]
 	})
